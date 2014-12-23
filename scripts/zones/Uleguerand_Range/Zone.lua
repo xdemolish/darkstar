@@ -55,6 +55,22 @@ end;
 function onRegionEnter(player,region)	
 end;	
 
+
+-----------------------------------		
+-- onZoneWeatherChange		
+-----------------------------------		
+
+function OnZoneWeatherChange(weather)
+
+    -- ice wall in (H-8) is open on clear days
+    if(weather ~= WEATHER_BLIZZARDS and weather ~= WEATHER_CLOUDS) then
+        GetNPCByID(16798109):setAnimation(8);
+    else
+        GetNPCByID(16798109):setAnimation(9);
+    end
+        
+end;
+
 -----------------------------------	
 -- onEventUpdate	
 -----------------------------------	

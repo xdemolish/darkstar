@@ -1951,3 +1951,16 @@ BEHAVIOUR_STANDBACK			= 0x002; -- mob will standback forever
 BEHAVIOUR_RAISABLE			= 0x004; -- mob can be raised via Raise spells
 BEHAVIOUR_AGGRO_AMBUSH		= 0x200; -- mob aggroes by ambush
 BEHAVIOUR_NO_TURN           = 0x400; -- mob does not turn to face target
+
+--------------------------------------------
+--
+--	TIME OFFSETS
+--
+--------------------------------------------
+TIME_OFFSET_DEC                 = 1009810800; -- Offset from December 31 2001
+TIME_OFFSET_YEAR                = 31536000;
+TIME_OFFSET_MONTH               = 2419200;
+TIME_OFFSET_WEEK                = 604800;
+TIME_OFFSET_DAY                 = 86400;
+TIME_OFFSET_HOUR                = 3600;
+TIME_OFFSET_MINUTE              = 60;
