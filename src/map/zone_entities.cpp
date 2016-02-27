@@ -298,10 +298,10 @@ void CZoneEntities::DecreaseZoneCounter(CCharEntity* PChar)
     //remove bcnm status
     if (m_zone->m_BattlefieldHandler != nullptr && PChar->StatusEffectContainer->HasStatusEffect(EFFECT_BATTLEFIELD))
     {
-        if (m_zone->m_BattlefieldHandler->disconnectFromBcnm(PChar)) {
+        /*if (m_zone->m_BattlefieldHandler->disconnectFromBcnm(PChar)) {
             ShowDebug("Removed %s from the BCNM they were in as they have left the zone.\n", PChar->GetName());
         }
-
+        */
         if (PChar->loc.destination == 0) { //this player is disconnecting/logged out, so move them to the entrance
             //move depending on zone
             int pos[4] = {0, 0, 0, 0};
@@ -321,10 +321,11 @@ void CZoneEntities::DecreaseZoneCounter(CCharEntity* PChar)
     }
     else if (m_zone->m_BattlefieldHandler != nullptr && PChar->StatusEffectContainer->HasStatusEffect(EFFECT_DYNAMIS, 0))
     {
+        /*
         if (m_zone->m_BattlefieldHandler->disconnectFromDynamis(PChar)) {
             ShowDebug("Removed %s from the BCNM they were in as they have left the zone.\n", PChar->GetName());
         }
-
+        */
         if (PChar->loc.destination == 0) { //this player is disconnecting/logged out, so move them to the entrance
             //move depending on zone
             int pos[4] = {0, 0, 0, 0};

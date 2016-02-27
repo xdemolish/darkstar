@@ -42,7 +42,7 @@ namespace battlefieldutils {
         Loads the given battlefield from the database and returns
         a new Battlefield object.
     ****************************************************************/
-    CBattlefield* loadBattlefield(CBattlefieldHandler* hand, uint16 bcnmid, BATTLEFIELDTYPE type) {
+    /*CBattlefield* LoadBattlefield(CBattlefieldHandler* hand, uint16 bcnmid, BATTLEFIELDTYPE type) {
         const int8* fmtQuery = "SELECT name, bcnmId, fastestName, fastestTime, timeLimit, levelCap, lootDropId, rules, partySize, zoneId \
 						    FROM bcnm_info \
 							WHERE bcnmId = %u";
@@ -57,21 +57,21 @@ namespace battlefieldutils {
         }
         else
         {
-            CBattlefield* PBattlefield = new CBattlefield(hand, Sql_GetUIntData(SqlHandle, 1), type);
+            CBattlefield* PBattlefield = new CBattlefield(Sql_GetUIntData(SqlHandle, 1), zoneutils::GetZone(Sql_GetUIntData(SqlHandle,9),);
             int8* tmpName;
             Sql_GetData(SqlHandle, 0, &tmpName, nullptr);
-            PBattlefield->setBcnmName(tmpName);
-            PBattlefield->setTimeLimit(std::chrono::seconds(Sql_GetUIntData(SqlHandle, 4)));
-            PBattlefield->setLevelCap(Sql_GetUIntData(SqlHandle, 5));
-            PBattlefield->setLootId(Sql_GetUIntData(SqlHandle, 6));
-            PBattlefield->setMaxParticipants(Sql_GetUIntData(SqlHandle, 8));
-            PBattlefield->setZoneId(Sql_GetUIntData(SqlHandle, 9));
-            PBattlefield->m_RuleMask = (uint16)Sql_GetUIntData(SqlHandle, 7);
+            PBattlefield->SetName(tmpName);
+            PBattlefield->SetTimeLimit(std::chrono::seconds(Sql_GetUIntData(SqlHandle, 4)));
+            PBattlefield->SetLevelCap(Sql_GetUIntData(SqlHandle, 5));
+            PBattlefield->SetLootID(Sql_GetUIntData(SqlHandle, 6));
+            PBattlefield->SetMaxParticipants(Sql_GetUIntData(SqlHandle, 8));
+            PBattlefield->SetZoneID(Sql_GetUIntData(SqlHandle, 9));
+            PBattlefield->SetRuleMask((uint16)Sql_GetUIntData(SqlHandle, 7));
             return PBattlefield;
         }
         return nullptr;
     }
-
+    */
     /***************************************************************
         Spawns monsters for the given BCNMID/Battlefield number by
         looking at bcnm_battlefield table for mob ids then spawning
@@ -86,13 +86,13 @@ namespace battlefieldutils {
 						    FROM bcnm_battlefield \
 							WHERE bcnmId = %u AND battlefieldNumber = %u";
 
-        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->getID(), battlefield->getBattlefieldNumber());
+        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetID(), battlefield->GetArea());
 
         if (ret == SQL_ERROR ||
             Sql_NumRows(SqlHandle) == 0)
         {
             ShowError("spawnMonstersForBcnm : SQL error - Cannot find any monster IDs for BCNMID %i Battlefield %i \n",
-                battlefield->getID(), battlefield->getBattlefieldNumber());
+                battlefield->GetID(), battlefield->GetArea());
         }
         else {
             while (Sql_NextRow(SqlHandle) == SQL_SUCCESS) {
@@ -102,34 +102,23 @@ namespace battlefieldutils {
                 if (PMob != nullptr)
                 {
 
-                    PMob->m_battlefieldID = battlefield->getBattlefieldNumber();
-                    PMob->m_bcnmID = battlefield->getID();
+                    PMob->m_battlefieldID = battlefield->GetArea();
+                    PMob->m_bcnmID = battlefield->GetID();
 
                     if (condition & CONDITION_SPAWNED_AT_START)
                     {
                         if (!PMob->PAI->IsSpawned())
                         {
                             PMob->Spawn();
-
-                            if (strcmp(PMob->GetName(), "Maat") == 0) {
-                                mobutils::InitializeMaat(PMob, (JOBTYPE)battlefield->getPlayerMainJob());
-
-                                // disable players subjob
-                                battlefield->disableSubJob();
-
-                                // disallow subjob, this will enable for later
-                                battlefield->m_RuleMask &= ~(1 << RULES_ALLOW_SUBJOBS);
-
-                            }
-                            //ShowDebug("Spawned %s (%u) id %i inst %i \n",PMob->GetName(),PMob->id,battlefield->getID(),battlefield->getBattlefieldNumber());
-                            battlefield->addEnemy(PMob, condition);
+                            //ShowDebug("Spawned %s (%u) id %i inst %i \n",PMob->GetName(),PMob->id,battlefield->GetID(),battlefield->GetArea());
+                            battlefield->InsertEntity(PMob, false, condition);
                         }
                         else {
                             ShowDebug(CL_CYAN"SpawnMobForBcnm: <%s> (%u) is already spawned\n" CL_RESET, PMob->GetName(), PMob->id);
                         }
                     }
                     else {
-                        battlefield->addEnemy(PMob, condition);
+                        battlefield->InsertEntity(PMob, false, condition);
                     }
                 }
                 else {
@@ -154,12 +143,12 @@ namespace battlefieldutils {
 						    FROM bcnm_treasure_chests \
 							WHERE bcnmId = %u AND battlefieldNumber = %u";
 
-        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->getID(), battlefield->getBattlefieldNumber());
+        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetID(), battlefield->GetArea());
 
         if (ret == SQL_ERROR || Sql_NumRows(SqlHandle) == 0)
         {
             ShowError("spawnTreasureForBcnm : SQL error - Cannot find any npc IDs for BCNMID %i Battlefield %i \n",
-                battlefield->getID(), battlefield->getBattlefieldNumber());
+                battlefield->GetID(), battlefield->GetArea());
         }
         else
         {
@@ -172,8 +161,8 @@ namespace battlefieldutils {
                     PNpc->status = STATUS_NORMAL;
                     PNpc->animation = 0;
                     PNpc->loc.zone->PushPacket(PNpc, CHAR_INRANGE, new CEntityUpdatePacket(PNpc, ENTITY_SPAWN, UPDATE_ALL_MOB));
-                    battlefield->addNpc(PNpc);
-                    ShowDebug(CL_CYAN"Spawned %s id %i inst %i \n", PNpc->status, PNpc->id, battlefield->getBattlefieldNumber());
+                    battlefield->InsertEntity(PNpc, false);
+                    ShowDebug(CL_CYAN"Spawned %s id %i inst %i \n", PNpc->status, PNpc->id, battlefield->GetArea());
                 }
                 else
                 {
@@ -194,10 +183,10 @@ namespace battlefieldutils {
     ***************************************************************/
     bool meetsWinningConditions(CBattlefield* battlefield, time_point tick) {
 
-        if (battlefield->won()) return true;
+        //if (battlefield->won()) return true;
 
         //handle odd cases e.g. stop fight @ x% HP
-
+        /* todo: handle in scripts
         //handle Maat fights
         if (battlefield->locked && (battlefield->m_RuleMask & RULES_MAAT))
         {
@@ -225,12 +214,14 @@ namespace battlefieldutils {
         }
 
         // savage
-        if (battlefield->getID() == 961 && battlefield->isEnemyBelowHPP(30)) {
+        if (battlefield->GetID() == 961 && battlefield->isEnemyBelowHPP(30)) {
             return true;
         }
+        */
 
         //generic cases, kill all mobs
-        if (battlefield->allEnemiesDefeated()) {
+        if (battlefield->AllEnemiesDefeated())
+        {
             return true;
         }
         return false;
@@ -242,12 +233,13 @@ namespace battlefieldutils {
     or when everyone has left, etc.
     ****************************************************************/
     bool meetsLosingConditions(CBattlefield* battlefield, time_point tick) {
+        /* todo: handle in scripts
         if (battlefield->lost()) return true;
         //check for expired duration e.g. >30min. Need the tick>start check as the start can be assigned
         //after the tick initially due to threading
         if (tick > battlefield->getStartTime() && (tick - battlefield->getStartTime()) > battlefield->getTimeLimit()) {
-            ShowDebug("BCNM %i inst:%i - You have exceeded your time limit!\n", battlefield->getID(),
-                battlefield->getBattlefieldNumber(), tick, battlefield->getStartTime(), battlefield->getTimeLimit());
+            ShowDebug("BCNM %i inst:%i - You have exceeded your time limit!\n", battlefield->GetID(),
+                battlefield->GetArea(), tick, battlefield->getStartTime(), battlefield->getTimeLimit());
             return true;
         }
 
@@ -261,36 +253,40 @@ namespace battlefieldutils {
                 //	}
                 if (tick - battlefield->getDeadTime() > 3min) {
                     ShowDebug("All players from the battlefield %i inst:%i have fallen for 3mins. Removing.\n",
-                        battlefield->getID(), battlefield->getBattlefieldNumber());
+                        battlefield->GetID(), battlefield->GetArea());
                     return true;
                 }
             }
             else {
-                ShowDebug("All players have fallen. Failed battlefield %i inst %i. No 3min mask. \n", battlefield->getID(), battlefield->getBattlefieldNumber());
+                ShowDebug("All players have fallen. Failed battlefield %i inst %i. No 3min mask. \n", battlefield->GetID(), battlefield->GetArea());
                 return true;
             }
         }
-
+        */
         return false;
     }
 
     /*************************************************************
     Returns the losing exit position for this BCNM.
     ****************************************************************/
-    void getLosePosition(CBattlefield* battlefield, int(&pPosition)[4]) {
+    void getLosePosition(CBattlefield* battlefield, int(&pPosition)[4])
+    {
         if (battlefield == nullptr)
             return;
 
-        switch (battlefield->getZoneId()) {
+        switch (battlefield->GetZoneID())
+        {
             case 139: //Horlais Peak
                 pPosition[0] = -503; pPosition[1] = 158; pPosition[2] = -212; pPosition[3] = 131;
                 break;
         }
     }
 
-    void getStartPosition(uint16 zoneid, int(&pPosition)[4]) {
+    void getStartPosition(uint16 zoneid, int(&pPosition)[4])
+    {
 
-        switch (zoneid) {
+        switch (zoneid)
+        {
             case 139: //Horlais Peak
                 pPosition[0] = -503; pPosition[1] = 158; pPosition[2] = -212; pPosition[3] = 131;
                 break;
@@ -316,7 +312,7 @@ namespace battlefieldutils {
         if (battlefield == nullptr)
             return;
 
-        switch (battlefield->getZoneId()) {
+        switch (battlefield->GetZoneID()) {
             case 139: //Horlais Peak
                 pPosition[0] = 445; pPosition[1] = -38; pPosition[2] = -19; pPosition[3] = 200;
                 break;
@@ -330,7 +326,7 @@ namespace battlefieldutils {
 						JOIN bcnm_info ON bcnm_info.LootDropId = bcnm_loot.LootDropId \
 						WHERE bcnm_info.LootDropId = %u LIMIT 1";
 
-        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->getLootId());
+        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetLootID());
         if (ret == SQL_ERROR || Sql_NumRows(SqlHandle) == 0 || Sql_NextRow(SqlHandle) != SQL_SUCCESS) {
             ShowError("SQL error occured \n");
             return 0;
@@ -348,7 +344,7 @@ namespace battlefieldutils {
 			ELSE 0 END) \
 			FROM bcnm_loot;";
 
-        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->getLootId(), groupID);
+        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetLootID(), groupID);
         if (ret == SQL_ERROR || Sql_NumRows(SqlHandle) == 0 || Sql_NextRow(SqlHandle) != SQL_SUCCESS) {
             ShowError("SQL error occured \n");
             return 0;
@@ -363,14 +359,14 @@ namespace battlefieldutils {
     ****************************************************************/
 
     void getChestItems(CBattlefield* battlefield) {
-        int instzone = battlefield->getZoneId();
+        int instzone = battlefield->GetZoneID();
         uint8 maxloot = 0;
-        LootList_t* LootList = itemutils::GetLootList(battlefield->getLootId());
+        LootList_t* LootList = itemutils::GetLootList(battlefield->GetLootID());
 
         if (LootList == nullptr) {
             ShowError("BCNM Chest opened with no valid loot list!");
             //no loot available for bcnm. End bcnm.
-            battlefield->winBcnm();
+            // todo: battlefield->winBcnm();
             return;
         }
         else
@@ -382,6 +378,7 @@ namespace battlefieldutils {
             }
         }
         //getMaxLootGroups(battlefield);
+        /* todo: handle rolls and finish on treasure
         if (maxloot != 0) {
             for (uint8 group = 0; group <= maxloot; ++group) {
                 uint16 maxRolls = getRollsPerGroup(battlefield, group);
@@ -409,7 +406,7 @@ namespace battlefieldutils {
         else {
             battlefield->m_NpcList.clear();
         }
-
+        */
     }
 
     bool spawnSecondPartDynamis(CBattlefield* battlefield) {
@@ -420,13 +417,13 @@ namespace battlefieldutils {
 								FROM bcnm_battlefield \
 								WHERE bcnmId = %u AND battlefieldNumber = 2";
 
-        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->getID());
+        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetID());
 
         if (ret == SQL_ERROR ||
             Sql_NumRows(SqlHandle) == 0)
         {
             ShowError("spawnSecondPartDynamis : SQL error - Cannot find any monster IDs for Dynamis %i \n",
-                battlefield->getID(), battlefield->getBattlefieldNumber());
+                battlefield->GetID(), battlefield->GetArea());
         }
         else {
             while (Sql_NextRow(SqlHandle) == SQL_SUCCESS) {
@@ -438,10 +435,10 @@ namespace battlefieldutils {
                     {
                         PMob->Spawn();
 
-                        PMob->m_battlefieldID = battlefield->getBattlefieldNumber();
+                        PMob->m_battlefieldID = battlefield->GetArea();
 
-                        ShowDebug("Spawned %s (%u) id %i inst %i \n", PMob->GetName(), PMob->id, battlefield->getID(), battlefield->getBattlefieldNumber());
-                        battlefield->addEnemy(PMob, CONDITION_SPAWNED_AT_START & CONDITION_WIN_REQUIREMENT);
+                        ShowDebug("Spawned %s (%u) id %i inst %i \n", PMob->GetName(), PMob->id, battlefield->GetID(), battlefield->GetArea());
+                        battlefield->InsertEntity(PMob, false, CONDITION_SPAWNED_AT_START & CONDITION_WIN_REQUIREMENT);
                     }
                     else {
                         ShowDebug(CL_CYAN"spawnSecondPartDynamis: <%s> (%u) is already spawned\n" CL_RESET, PMob->GetName(), PMob->id);

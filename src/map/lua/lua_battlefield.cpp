@@ -71,7 +71,7 @@ inline int32 CLuaBattlefield::getBattlefieldNumber(lua_State* L)
 {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
 
-    lua_pushinteger(L, m_PLuaBattlefield->getBattlefieldNumber());
+    lua_pushinteger(L, m_PLuaBattlefield->GetArea());
     return 1;
 }
 
@@ -79,7 +79,7 @@ inline int32 CLuaBattlefield::getTimeLimit(lua_State* L)
 {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
 
-    lua_pushinteger(L, std::chrono::duration_cast<std::chrono::seconds>(m_PLuaBattlefield->getTimeLimit()).count());
+    //todo: lua_pushinteger(L, std::chrono::duration_cast<std::chrono::seconds>(m_PLuaBattlefield->GetTimeLimit()).count());
     return 1;
 }
 
@@ -87,28 +87,28 @@ inline int32 CLuaBattlefield::getBcnmID(lua_State* L)
 {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
 
-    lua_pushinteger(L, m_PLuaBattlefield->getID());
+    lua_pushinteger(L, m_PLuaBattlefield->GetID());
     return 1;
 }
 
 inline int32 CLuaBattlefield::getTimeInside(lua_State* L) {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
-    uint32 duration = std::chrono::duration_cast<std::chrono::seconds>(m_PLuaBattlefield->getWinTime() - m_PLuaBattlefield->getStartTime()).count();
-    lua_pushinteger(L, duration);
+    // todo uint32 duration = std::chrono::duration_cast<std::chrono::seconds>(m_PLuaBattlefield->GetWinTime() - m_PLuaBattlefield->GetStartTime()).count();
+    //lua_pushinteger(L, duration);
     return 1;
 }
 
 inline int32 CLuaBattlefield::getFastestTime(lua_State* L) {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
 
-    lua_pushinteger(L, m_PLuaBattlefield->m_FastestTime);
+    //lua_pushinteger(L, m_PLuaBattlefield->GetCurrentRecord().time);
     return 1;
 }
 
 inline int32 CLuaBattlefield::getFastestPlayer(lua_State* L) {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
 
-    lua_pushstring(L, m_PLuaBattlefield->m_FastestName.c_str());
+    lua_pushstring(L, m_PLuaBattlefield->GetCurrentRecord().name.c_str());
     return 1;
 }
 
@@ -122,14 +122,14 @@ inline int32 CLuaBattlefield::setAsFastest(lua_State* L) {
 inline int32 CLuaBattlefield::getEntrance(lua_State* L) {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
 
-    lua_pushinteger(L, m_PLuaBattlefield->getEntrance());
+    lua_pushinteger(L, m_PLuaBattlefield->GetArea());
     return 1;
 }
 
 inline int32 CLuaBattlefield::setEntrance(lua_State* L) {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
     DSP_DEBUG_BREAK_IF(!lua_isnumber(L, 1) || lua_isnil(L, 1));
-    m_PLuaBattlefield->setEntrance(lua_tointeger(L, 1));
+    m_PLuaBattlefield->SetArea(lua_tointeger(L, 1));
     return 0;
 }
 
@@ -140,10 +140,10 @@ inline int32 CLuaBattlefield::insertAlly(lua_State* L)
 
     uint32 groupid = lua_tointeger(L, 1);
 
-    CMobEntity* PAlly = mobutils::InstantiateAlly(groupid, m_PLuaBattlefield->getZoneId());
+    CMobEntity* PAlly = mobutils::InstantiateAlly(groupid, m_PLuaBattlefield->GetZoneID());
     if (PAlly)
     {
-        m_PLuaBattlefield->m_AllyList.push_back(PAlly);
+        m_PLuaBattlefield->InsertEntity(PAlly, true);
         PAlly->PBCNM = m_PLuaBattlefield;
         PAlly->StatusEffectContainer->AddStatusEffect(new CStatusEffect(EFFECT_BATTLEFIELD, EFFECT_BATTLEFIELD, m_PLuaBattlefield->getID(), 0, 0), true);
         lua_getglobal(L, CLuaBaseEntity::className);
@@ -165,6 +165,7 @@ inline int32 CLuaBattlefield::getAllies(lua_State* L)
 {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
 
+    /* todo
     lua_createtable(L, m_PLuaBattlefield->m_AllyList.size(), 0);
     int8 newTable = lua_gettop(L);
     int i = 1;
@@ -179,7 +180,7 @@ inline int32 CLuaBattlefield::getAllies(lua_State* L)
 
         lua_rawseti(L, -2, i++);
     }
-
+    */
     return 1;
 }
 
@@ -187,7 +188,7 @@ inline int32 CLuaBattlefield::lose(lua_State* L)
 {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
 
-    m_PLuaBattlefield->lose();
+    //m_PLuaBattlefield->lose();
 
     return 0;
 }
@@ -196,7 +197,7 @@ inline int32 CLuaBattlefield::win(lua_State* L)
 {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
 
-    m_PLuaBattlefield->win(server_clock::now());
+    //m_PLuaBattlefield->win();
 
     return 0;
 }

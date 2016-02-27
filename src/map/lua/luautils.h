@@ -223,6 +223,9 @@ namespace luautils
 
     int32 OnPath(CBaseEntity* PEntity);                                           // triggers when a patrol npc finishes its pathfind
 
+    int32 OnBattlefieldHandlerInitialise(CZone* PZone);
+    int32 OnBattlefieldTick(CBattlefield* PBattlefield);
+
     int32 OnBcnmEnter(CCharEntity* PChar, CBattlefield* PInstance);					//triggers when enter a bcnm
     int32 OnBcnmLeave(CCharEntity* PChar, CBattlefield* PInstance, uint8 LeaveCode);	//triggers when leaving a bcnm
                                                                                     //Code 1=via Circle 2=warp/dc 3=win 4=lose

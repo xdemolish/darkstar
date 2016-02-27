@@ -2444,6 +2444,84 @@ namespace luautils
         return 0;
     }
 
+    int32 OnBattlefieldHandlerInitialise(CZone* PZone)
+    {
+        DSP_DEBUG_BREAK_IF(PZone == nullptr);
+
+        lua_prepscript("scripts/globals/battlefield.lua");
+
+        uint8 MaxAreas = 3;
+
+        if (prepFile(File, "onBattlefieldHandlerInitialise"))
+        {
+            return MaxAreas;
+        }
+
+        CLuaZone LuaZone(PZone);
+        Lunar<CLuaZone>::push(LuaHandle, &LuaZone);
+
+        if (lua_pcall(LuaHandle, 2, LUA_MULTRET, 0))
+        {
+            ShowError("luautils::onBattlefieldHandlerInitialise: %s\n", lua_tostring(LuaHandle, -1));
+            lua_pop(LuaHandle, 1);
+            return MaxAreas;
+        }
+
+        int32 returns = lua_gettop(LuaHandle) - oldtop;
+        if (returns < 1)
+        {
+            ShowError("luautils::onBattlefieldHandlerInitialise (%s): 1 return expected, got %d\n", File, returns);
+            return MaxAreas;
+        }
+
+        if (returns > 1)
+        {
+            ShowError("luautils::onBattlefieldHandlerInitialise (%s): 1 return expected, got %d\n", File, returns);
+            lua_pop(LuaHandle, returns);
+        }
+
+        MaxAreas = lua_tointeger(LuaHandle, -1);
+        lua_pop(LuaHandle, 1);
+
+        return MaxAreas;
+    }
+
+    int32 OnBattlefieldTick(CBattlefield* PBattlefield)
+    {
+        DSP_DEBUG_BREAK_IF(PBattlefield == nullptr);
+
+        lua_prepscript("scripts/zones/%s/bcnms/%s.lua", PBattlefield->GetZone()->GetName(), PBattlefield->GetName());
+
+        if (prepFile(File, "onBattlefieldTick"))
+        {
+            return -1;
+        }
+
+        CLuaBattlefield LuaBattlefield(PBattlefield);
+        Lunar<CLuaBattlefield>::push(LuaHandle, &LuaBattlefield);
+
+        if (lua_pcall(LuaHandle, 2, LUA_MULTRET, 0))
+        {
+            ShowError("luautils::onBattlefieldTick: %s\n", lua_tostring(LuaHandle, -1));
+            return -1;
+        }
+
+        int32 returns = lua_gettop(LuaHandle) - oldtop;
+        if (returns < 1)
+        {
+            ShowError("luautils::onBattlefieldTick (%s): 1 return expected, got %d\n", File, returns);
+            return -1;
+        }
+
+        if (returns > 1)
+        {
+            ShowError("luautils::onBattlefieldTick (%s): 1 return expected, got %d\n", File, returns);
+            lua_pop(LuaHandle, returns);
+        }
+
+        return 0;
+    }
+
     /************************************************************************
     *                                                                       *
     *  Сalled when a monster engages a target for the first time			*
@@ -3964,7 +4042,7 @@ namespace luautils
 
         CZone* PZone = PChar->loc.zone == nullptr ? zoneutils::GetZone(PChar->loc.destination) : PChar->loc.zone;
 
-        lua_prepscript("scripts/zones/%s/bcnms/%s.lua", PZone->GetName(), PBattlefield->getBcnmName());
+        lua_prepscript("scripts/zones/%s/bcnms/%s.lua", PZone->GetName(), PBattlefield->GetName());
 
         if (prepFile(File, "onBcnmEnter"))
         {
@@ -4007,7 +4085,7 @@ namespace luautils
 
         CZone* PZone = PChar->loc.zone == nullptr ? zoneutils::GetZone(PChar->loc.destination) : PChar->loc.zone;
 
-        lua_prepscript("scripts/zones/%s/bcnms/%s.lua", PZone->GetName(), PBattlefield->getBcnmName());
+        lua_prepscript("scripts/zones/%s/bcnms/%s.lua", PZone->GetName(), PBattlefield->GetName());
 
         if (prepFile(File, "onBcnmLeave"))
         {
@@ -4053,7 +4131,7 @@ namespace luautils
 
         CZone* PZone = PChar->loc.zone == nullptr ? zoneutils::GetZone(PChar->loc.destination) : PChar->loc.zone;
 
-        lua_prepscript("scripts/zones/%s/bcnms/%s.lua", PZone->GetName(), PBattlefield->getBcnmName());
+        lua_prepscript("scripts/zones/%s/bcnms/%s.lua", PZone->GetName(), PBattlefield->GetName());
 
         if (prepFile(File, "onBcnmRegister"))
         {
@@ -4087,7 +4165,7 @@ namespace luautils
     int32 OnBcnmDestroy(CBattlefield* PBattlefield)
     {
 
-        lua_prepscript("scripts/zones/%s/bcnms/%s.lua", zoneutils::GetZone(PBattlefield->getZoneId())->GetName(), PBattlefield->getBcnmName());
+        lua_prepscript("scripts/zones/%s/bcnms/%s.lua", PBattlefield->GetZone()->GetName());
 
         if (prepFile(File, "onBcnmDestroy"))
         {

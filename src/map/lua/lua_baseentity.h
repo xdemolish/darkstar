@@ -216,24 +216,24 @@ public:
     int32 bcnmLeave(lua_State*);                     //Leave a bcnm battlefield
     int32 isInBcnm(lua_State*);                      //true if you're INSIDE the bc (not just the status)
     int32 isBcnmsFull(lua_State*);                   //true if all 3 battlefield are full
-    int32 isSpecialBattlefieldEmpty(lua_State*);     // 1 if this battlefield is full
-    int32 getSpecialBattlefieldLeftTime(lua_State*); // return left time of the specific instance
-    int32 addTimeToSpecialBattlefield(lua_State*);   // add time of the specific instance
+    //int32 isSpecialBattlefieldEmpty(lua_State*);     // 1 if this battlefield is full
+    //int32 getSpecialBattlefieldLeftTime(lua_State*); // return left time of the specific instance
+    //int32 addTimeToSpecialBattlefield(lua_State*);   // add time of the specific instance
     int32 BCNMSetLoot(lua_State*);                   // set a lootlist for a special inctance
     int32 RestoreAndHealOnBattlefield(lua_State*);   // restore ability , PM and PV on the specific instance
     int32 getBattlefieldID(lua_State*);              //returns 1 2 or 3 if the player can enter a bcnm with the instance assigned
     int32 getBCNMloot(lua_State*);                   //triggers if the player opens the chest inside bcnm
-    int32 addPlayerToSpecialBattlefield(lua_State*); //for limbus
+    //int32 addPlayerToSpecialBattlefield(lua_State*); //for limbus
 
     int32 setSpawn(lua_State*);                // Sets spawn point
     int32 setRespawnTime(lua_State*);          // set respawn time
-    int32 getDynamisUniqueID(lua_State*);      //Get unique Dynamis ID
-    int32 addPlayerToDynamis(lua_State*);      //Add player to the Dynamis
-    int32 addTimeToDynamis(lua_State*);        //Add time to the Dynamis
-    int32 launchDynamisSecondPart(lua_State*); //Spawn Mob part 2 when mega boss is defeated
-    int32 isInDynamis(lua_State*);             //If player is in Dynamis return true else false
-    int32 getStatPoppedMobs(lua_State*);       // True if dyna statue has popped mobs
-    int32 setStatPoppedMobs(lua_State*);       // Set to 1 for true, 0 for false
+    //int32 getDynamisUniqueID(lua_State*);      //Get unique Dynamis ID
+    //int32 addPlayerToDynamis(lua_State*);      //Add player to the Dynamis
+    //int32 addTimeToDynamis(lua_State*);        //Add time to the Dynamis
+    //int32 launchDynamisSecondPart(lua_State*); //Spawn Mob part 2 when mega boss is defeated
+    //int32 isInDynamis(lua_State*);             //If player is in Dynamis return true else false
+    //int32 getStatPoppedMobs(lua_State*);       // True if dyna statue has popped mobs
+    //int32 setStatPoppedMobs(lua_State*);       // Set to 1 for true, 0 for false
 
     int32 isInBattlefieldList(lua_State*);  // Return true is the mob is in battlefield list
     int32 addInBattlefieldList(lua_State*); // Add the mob to the battlefield list
