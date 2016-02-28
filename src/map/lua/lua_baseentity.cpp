@@ -7089,7 +7089,7 @@ inline int32 CLuaBaseEntity::isInBcnm(lua_State *L)
 
     CCharEntity* PChar = (CCharEntity*)m_PBaseEntity;
 
-    if (PChar->PBCNM)
+    if (PChar->PBattlefield)
     {
         lua_pushinteger(L, 1);
         return 1;
@@ -9267,13 +9267,13 @@ inline int32 CLuaBaseEntity::getBattlefield(lua_State* L)
 {
     DSP_DEBUG_BREAK_IF(m_PBaseEntity == nullptr);
 
-    if (m_PBaseEntity->PBCNM)
+    if (m_PBaseEntity->PBattlefield)
     {
         lua_getglobal(L, CLuaBattlefield::className);
         lua_pushstring(L, "new");
         lua_gettable(L, -2);
         lua_insert(L, -2);
-        lua_pushlightuserdata(L, (void*)m_PBaseEntity->PBCNM);
+        lua_pushlightuserdata(L, (void*)m_PBaseEntity->PBattlefield);
         lua_pcall(L, 2, 1, 0);
         return 1;
     }

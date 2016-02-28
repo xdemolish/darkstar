@@ -39,7 +39,7 @@ public:
 
     CBattlefieldHandler(CZone* PZone);
     void	HandleBattlefields(time_point tick);							// called every tick to handle win/lose conditions, locking the bcnm, etc
-
+    void    LoadBattlefield(CCharEntity* PChar, uint16 battlefield);
     CBattlefield* GetBattlefield(CCharEntity*);                           // returns the battlefield a player is in
 
 private:

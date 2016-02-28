@@ -93,7 +93,7 @@ inline int32 CLuaBattlefield::getBcnmID(lua_State* L)
 
 inline int32 CLuaBattlefield::getTimeInside(lua_State* L) {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
-    // todo uint32 duration = std::chrono::duration_cast<std::chrono::seconds>(m_PLuaBattlefield->GetWinTime() - m_PLuaBattlefield->GetStartTime()).count();
+    uint32 duration = std::chrono::duration_cast<std::chrono::seconds>(m_PLuaBattlefield->GetTimeInside()).count();
     //lua_pushinteger(L, duration);
     return 1;
 }
@@ -144,8 +144,8 @@ inline int32 CLuaBattlefield::insertAlly(lua_State* L)
     if (PAlly)
     {
         m_PLuaBattlefield->InsertEntity(PAlly, true);
-        PAlly->PBCNM = m_PLuaBattlefield;
-        PAlly->StatusEffectContainer->AddStatusEffect(new CStatusEffect(EFFECT_BATTLEFIELD, EFFECT_BATTLEFIELD, m_PLuaBattlefield->getID(), 0, 0), true);
+        PAlly->PBattlefield = m_PLuaBattlefield;
+        PAlly->StatusEffectContainer->AddStatusEffect(new CStatusEffect(EFFECT_BATTLEFIELD, EFFECT_BATTLEFIELD, m_PLuaBattlefield->GetID(), 0, 0), true);
         lua_getglobal(L, CLuaBaseEntity::className);
         lua_pushstring(L, "new");
         lua_gettable(L, -2);
@@ -200,6 +200,47 @@ inline int32 CLuaBattlefield::win(lua_State* L)
     //m_PLuaBattlefield->win();
 
     return 0;
+}
+
+inline int32 CLuaBattlefield::loadMobs(lua_State* L)
+{
+    DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
+    //m_PLuaBattlefield->LoadMobs();
+    return 0;
+}
+
+inline int32 CLuaBattlefield::loadNPCs(lua_State* L)
+{
+    DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
+    //m_PLuaBattlefield->LoadNPCs();
+    return 0;
+}
+
+inline int32 CLuaBattlefield::insertEntity(lua_State* L)
+{
+    DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
+    DSP_DEBUG_BREAK_IF(lua_isnil(L, 1) || !lua_isnumber(L, 1));
+
+    auto targid = lua_tointeger(L, 1);
+    auto filter = lua_tointeger(L, 2);
+    bool ally = !lua_isnil(L, 3) ? lua_toboolean(L, 3) : false;
+    BCMOBCONDITIONS conditions = static_cast<BCMOBCONDITIONS>(!lua_isnil(L, 4) ? lua_tointeger(L, 4) : 0);
+
+    auto PEntity = ally ? mobutils::InstantiateAlly(targid, m_PLuaBattlefield->GetZoneID()) : m_PLuaBattlefield->GetZone()->GetEntity(targid, filter);
+
+    if (PEntity)
+    {
+        m_PLuaBattlefield->InsertEntity(PEntity, ally, conditions);
+        CLuaBaseEntity LuaBaseEntity(PEntity);
+        Lunar<CLuaBaseEntity>::push(L, &LuaBaseEntity);
+    }
+    else
+    {
+        ShowError(CL_RED "CLuaBattlefield::insertEntity - targid ID %u not found!" CL_RESET, targid);
+    }
+
+    lua_pushnil(L);
+    return 1;
 }
 
 /************************************************************************

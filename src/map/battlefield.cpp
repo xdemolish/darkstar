@@ -70,20 +70,19 @@ uint16 CBattlefield::GetZoneID()
     return m_PZone->GetID();
 }
 
-const int8* CBattlefield::GetName()
+string_t CBattlefield::GetName()
 {
-    return m_Name.c_str();
+    return m_Name;
 }
 
-const int8* CBattlefield::GetInitiator()
+string_t CBattlefield::GetInitiator()
 {
-    return m_Initiator.c_str();
+    return m_Initiator;
 }
 
 uint8 CBattlefield::GetArea()
 {
     return m_Area;
-
 }
 
 BattlefieldRecord_t CBattlefield::GetCurrentRecord()
@@ -101,27 +100,27 @@ uint16 CBattlefield::GetRuleMask()
     return m_Rules;
 }
 
-uint32 CBattlefield::GetStartTime()
+time_point CBattlefield::GetStartTime()
 {
     return m_StartTime;
 }
 
-uint32 CBattlefield::GetTimeInside()
+duration CBattlefield::GetTimeInside()
 {
-    return uint32(m_Tick - m_StartTime);
+    return m_Tick - m_StartTime;
 }
 
-uint32 CBattlefield::GetTimeLimit()
+duration CBattlefield::GetTimeLimit()
 {
     return m_TimeLimit;
 }
 
-uint32 CBattlefield::GetAllDeadTime()
+duration CBattlefield::GetAllDeadTime()
 {
     return m_AllDeadTime;
 }
 
-uint32 CBattlefield::GetFinishTime()
+duration CBattlefield::GetFinishTime()
 {
     return m_FinishTime;
 }
@@ -153,12 +152,18 @@ void CBattlefield::SetName(int8* name)
     m_Name.insert(0, name);
 }
 
-void CBattlefield::SetTimeLimit(uint32 time)
+void CBattlefield::SetInitiator(int8* name)
+{
+    m_Initiator.clear();
+    m_Initiator.insert(0, name);
+}
+
+void CBattlefield::SetTimeLimit(duration time)
 {
     m_TimeLimit = time;
 }
 
-void CBattlefield::SetAllDeadTime(uint32 time)
+void CBattlefield::SetAllDeadTime(duration time)
 {
     m_AllDeadTime = time;
 }
@@ -166,6 +171,22 @@ void CBattlefield::SetAllDeadTime(uint32 time)
 void CBattlefield::SetArea(uint8 area)
 {
     m_Area = area;
+}
+
+void CBattlefield::SetCurrentRecord(int8* name, duration time)
+{
+    m_CurrentRecord.name = name;
+    m_CurrentRecord.time = time;
+}
+
+void CBattlefield::SetStatus(uint8 status)
+{
+    m_Status = status;
+}
+
+void CBattlefield::SetRuleMask(uint16 rulemask)
+{
+    m_Rules = rulemask;
 }
 
 void CBattlefield::SetMaxParticipants(uint8 max)
@@ -189,9 +210,10 @@ void CBattlefield::ApplyLevelCap(CCharEntity* PChar)
 
     //todo: find a better place to put this
     /*
-    if (m_PlayerList.size() == 0) {
-        ShowWarning("battlefield:GetPlayerMainLevel - No players in battlefield!\n");
-        return;
+    if (m_PlayerList.size() == 0)
+    {
+         ShowWarning("battlefield:GetPlayerMainLevel - No players in battlefield!\n");
+         return;
     }
     uint8 cap = GetLevelCap();
     if (cap != 0)
@@ -226,6 +248,7 @@ void CBattlefield::ApplyLevelCap(CCharEntity* PChar)
 
 void CBattlefield::PushMessageToAllInBcnm(uint16 msg, uint16 param)
 {
+    // todo: handle this properly
     ForEachPlayer([msg, param](CCharEntity* PChar)
     {
         if (PChar->m_lastBcnmTimePrompt != param)
@@ -248,9 +271,9 @@ bool CBattlefield::AllPlayersDead()
 
 bool CBattlefield::AllEnemiesDefeated()
 {
-    for (auto condition : m_EnemyList)
+    for (auto mob : m_EnemyList)
     {
-        if (condition.required && !condition.PMob->PAI->IsCurrentState<CDeathState>())
+        if (mob.condition & CONDITION_WIN_REQUIREMENT && !mob.PMob->PAI->IsCurrentState<CDeathState>())
             return false;
     }
     return true;
@@ -261,7 +284,7 @@ bool CBattlefield::IsOccupied()
     return m_PlayerList.size() > 0;
 }
 
-bool CBattlefield::InsertEntity(CBaseEntity* PEntity, bool ally, bool requiredkill)
+bool CBattlefield::InsertEntity(CBaseEntity* PEntity, bool ally, BCMOBCONDITIONS conditions)
 {
     if (PEntity->objtype == TYPE_PC)
     {
@@ -282,7 +305,7 @@ bool CBattlefield::InsertEntity(CBaseEntity* PEntity, bool ally, bool requiredki
             // only apply conditions to mobs spawning by default
             BattlefieldMob_t mob;
             mob.PMob = static_cast<CMobEntity*>(PEntity);
-            mob.required = requiredkill;
+            mob.condition = conditions;
             m_EnemyList.push_back(mob);
         }
         // ally
@@ -291,6 +314,7 @@ bool CBattlefield::InsertEntity(CBaseEntity* PEntity, bool ally, bool requiredki
             m_AllyList.push_back(static_cast<CMobEntity*>(PEntity));
         }
     }
+    PEntity->PBattlefield = this;
     return true;
 }
 
@@ -301,7 +325,7 @@ void CBattlefield::Cleanup()
     {
         PMob->PAI->Despawn();
         PMob->status = STATUS_DISAPPEAR;
-        PMob->PBCNM = nullptr;
+        PMob->PBattlefield = nullptr;
     });
     // wipe mob list
     m_EnemyList.clear();
@@ -319,6 +343,7 @@ void CBattlefield::Cleanup()
 
     for (auto PAlly : m_AllyList)
     {
+        PAlly->PAI->Despawn();
         zoneutils::GetZone(GetZoneID())->DeletePET(PAlly);
         delete PAlly;
     }
@@ -328,7 +353,7 @@ void CBattlefield::Cleanup()
 
     ForEachPlayer([](CCharEntity* PChar)
     {
-        PChar->PBCNM = nullptr;
+        PChar->PBattlefield = nullptr;
     });
 
     //todo: delete battlefield
@@ -348,10 +373,11 @@ void CBattlefield::OpenChestinBcnm()
 
 bool CBattlefield::LoseBcnm()
 {
-// todo: handle losing
-    for (int i = 0; i < m_PlayerList.size(); i++)
-        luautils::OnBcnmLeave(m_PlayerList.at(i), this, LEAVE_LOSE);
-
+    // todo: handle losing
+    ForEachPlayer([this](CCharEntity* PChar)
+    {
+        luautils::OnBcnmLeave(PChar, this, LEAVE_LOSE);
+    });
     return true;
 }
 
@@ -394,7 +420,7 @@ void CBattlefield::ForEachRequiredEnemy(std::function<void(CMobEntity*)> func)
 {
     for (auto mob : m_EnemyList)
     {
-        if(mob.required)
+        if (mob.condition)
             func((CMobEntity*)mob.PMob);
     }
 }
@@ -403,7 +429,7 @@ void CBattlefield::ForEachAdditionalEnemy(std::function<void(CMobEntity*)> func)
 {
     for (auto mob : m_EnemyList)
     {
-        if (mob.required)
+        if (mob.condition)
             func((CMobEntity*)mob.PMob);
     }
 }

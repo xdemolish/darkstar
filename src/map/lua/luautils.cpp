@@ -2486,6 +2486,41 @@ namespace luautils
         return MaxAreas;
     }
 
+    int32 OnBattlefieldInitialise(CBattlefield * PBattlefield)
+    {
+        DSP_DEBUG_BREAK_IF(PBattlefield == nullptr);
+
+        lua_prepscript("scripts/zones/%s/bcnms/%s.lua", PBattlefield->GetZone()->GetName(), PBattlefield->GetName());
+
+        if (prepFile(File, "onBattlefieldInitialise"))
+        {
+            return -1;
+        }
+
+        CLuaBattlefield LuaBattlefield(PBattlefield);
+        Lunar<CLuaBattlefield>::push(LuaHandle, &LuaBattlefield);
+
+        if (lua_pcall(LuaHandle, 2, LUA_MULTRET, 0))
+        {
+            ShowError("luautils::onBattlefieldInitialise: %s\n", lua_tostring(LuaHandle, -1));
+            return -1;
+        }
+
+        int32 returns = lua_gettop(LuaHandle) - oldtop;
+        if (returns < 1)
+        {
+            ShowError("luautils::onBattlefieldInitialise (%s): 1 return expected, got %d\n", File, returns);
+            return -1;
+        }
+
+        if (returns > 1)
+        {
+            ShowError("luautils::onBattlefieldInitialise (%s): 1 return expected, got %d\n", File, returns);
+            lua_pop(LuaHandle, returns);
+        }
+
+    }
+
     int32 OnBattlefieldTick(CBattlefield* PBattlefield)
     {
         DSP_DEBUG_BREAK_IF(PBattlefield == nullptr);
@@ -2521,6 +2556,7 @@ namespace luautils
 
         return 0;
     }
+
 
     /************************************************************************
     *                                                                       *

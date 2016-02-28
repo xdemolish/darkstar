@@ -48,9 +48,8 @@ namespace battlefieldutils
     uint8 getMaxLootGroups(CBattlefield* battlefield);						// returns maximum number of loot groups for a BCNM battlefield
     uint16 getRollsPerGroup(CBattlefield* battlefield, uint8 groupID);		// returns the maximum number of "rolls" in a given group
     void getChestItems(CBattlefield* battlefield);
-    CBattlefield* loadBattlefield(CBattlefieldHandler* hand, uint16 bcnmid, BATTLEFIELDTYPE type);
+    CBattlefield* LoadBattlefield(CBattlefieldHandler* hand, uint16 bcnmid, BATTLEFIELDTYPE type);
 
-    bool spawnSecondPartDynamis(CBattlefield* battlefield);
 };
 
 #endif

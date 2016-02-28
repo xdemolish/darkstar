@@ -42,36 +42,13 @@ namespace battlefieldutils {
         Loads the given battlefield from the database and returns
         a new Battlefield object.
     ****************************************************************/
-    /*CBattlefield* LoadBattlefield(CBattlefieldHandler* hand, uint16 bcnmid, BATTLEFIELDTYPE type) {
-        const int8* fmtQuery = "SELECT name, bcnmId, fastestName, fastestTime, timeLimit, levelCap, lootDropId, rules, partySize, zoneId \
-						    FROM bcnm_info \
-							WHERE bcnmId = %u";
-
-        int32 ret = Sql_Query(SqlHandle, fmtQuery, bcnmid);
-
-        if (ret == SQL_ERROR ||
-            Sql_NumRows(SqlHandle) == 0 ||
-            Sql_NextRow(SqlHandle) != SQL_SUCCESS)
+    CBattlefield* LoadBattlefield(CBattlefieldHandler* hand, uint16 bcnmid, BATTLEFIELDTYPE type)
+    {
         {
-            ShowError("Cannot load battlefield BCNM:%i \n", bcnmid);
-        }
-        else
-        {
-            CBattlefield* PBattlefield = new CBattlefield(Sql_GetUIntData(SqlHandle, 1), zoneutils::GetZone(Sql_GetUIntData(SqlHandle,9),);
-            int8* tmpName;
-            Sql_GetData(SqlHandle, 0, &tmpName, nullptr);
-            PBattlefield->SetName(tmpName);
-            PBattlefield->SetTimeLimit(std::chrono::seconds(Sql_GetUIntData(SqlHandle, 4)));
-            PBattlefield->SetLevelCap(Sql_GetUIntData(SqlHandle, 5));
-            PBattlefield->SetLootID(Sql_GetUIntData(SqlHandle, 6));
-            PBattlefield->SetMaxParticipants(Sql_GetUIntData(SqlHandle, 8));
-            PBattlefield->SetZoneID(Sql_GetUIntData(SqlHandle, 9));
-            PBattlefield->SetRuleMask((uint16)Sql_GetUIntData(SqlHandle, 7));
-            return PBattlefield;
         }
         return nullptr;
     }
-    */
+
     /***************************************************************
         Spawns monsters for the given BCNMID/Battlefield number by
         looking at bcnm_battlefield table for mob ids then spawning
@@ -111,14 +88,14 @@ namespace battlefieldutils {
                         {
                             PMob->Spawn();
                             //ShowDebug("Spawned %s (%u) id %i inst %i \n",PMob->GetName(),PMob->id,battlefield->GetID(),battlefield->GetArea());
-                            battlefield->InsertEntity(PMob, false, condition);
+                            battlefield->InsertEntity(PMob, false, (BCMOBCONDITIONS)condition);
                         }
                         else {
                             ShowDebug(CL_CYAN"SpawnMobForBcnm: <%s> (%u) is already spawned\n" CL_RESET, PMob->GetName(), PMob->id);
                         }
                     }
                     else {
-                        battlefield->InsertEntity(PMob, false, condition);
+                        battlefield->InsertEntity(PMob, false, (BCMOBCONDITIONS)condition);
                     }
                 }
                 else {
@@ -407,49 +384,5 @@ namespace battlefieldutils {
             battlefield->m_NpcList.clear();
         }
         */
-    }
-
-    bool spawnSecondPartDynamis(CBattlefield* battlefield) {
-        DSP_DEBUG_BREAK_IF(battlefield == nullptr);
-
-        //get ids from DB
-        const int8* fmtQuery = "SELECT monsterId \
-								FROM bcnm_battlefield \
-								WHERE bcnmId = %u AND battlefieldNumber = 2";
-
-        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetID());
-
-        if (ret == SQL_ERROR ||
-            Sql_NumRows(SqlHandle) == 0)
-        {
-            ShowError("spawnSecondPartDynamis : SQL error - Cannot find any monster IDs for Dynamis %i \n",
-                battlefield->GetID(), battlefield->GetArea());
-        }
-        else {
-            while (Sql_NextRow(SqlHandle) == SQL_SUCCESS) {
-                uint32 mobid = Sql_GetUIntData(SqlHandle, 0);
-                CMobEntity* PMob = (CMobEntity*)zoneutils::GetEntity(mobid, TYPE_MOB);
-                if (PMob != nullptr)
-                {
-                    if (!PMob->PAI->IsSpawned())
-                    {
-                        PMob->Spawn();
-
-                        PMob->m_battlefieldID = battlefield->GetArea();
-
-                        ShowDebug("Spawned %s (%u) id %i inst %i \n", PMob->GetName(), PMob->id, battlefield->GetID(), battlefield->GetArea());
-                        battlefield->InsertEntity(PMob, false, CONDITION_SPAWNED_AT_START & CONDITION_WIN_REQUIREMENT);
-                    }
-                    else {
-                        ShowDebug(CL_CYAN"spawnSecondPartDynamis: <%s> (%u) is already spawned\n" CL_RESET, PMob->GetName(), PMob->id);
-                    }
-                }
-                else {
-                    ShowDebug("spawnSecondPartDynamis: mob %u not found\n", mobid);
-                }
-            }
-            return true;
-        }
-        return false;
     }
 };

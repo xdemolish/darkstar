@@ -57,6 +57,10 @@ public:
     int32 getAllies(lua_State*);
     int32 lose(lua_State*);
     int32 win(lua_State*);
+
+    int32 loadMobs(lua_State*);
+    int32 loadNPCs(lua_State*);
+    int32 insertEntity(lua_State*);
 };
 
 #endif

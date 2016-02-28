@@ -34,7 +34,7 @@ CBaseEntity::CBaseEntity()
 	namevis = 1;
 
     PAI = nullptr;
-	PBCNM = nullptr;
+	PBattlefield = nullptr;
 	PInstance = nullptr;
 
 	speed    = 40 + map_config.speed_mod;
