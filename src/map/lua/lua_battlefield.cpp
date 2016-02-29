@@ -79,7 +79,7 @@ inline int32 CLuaBattlefield::getTimeLimit(lua_State* L)
 {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
 
-    //todo: lua_pushinteger(L, std::chrono::duration_cast<std::chrono::seconds>(m_PLuaBattlefield->GetTimeLimit()).count());
+    lua_pushinteger(L, std::chrono::duration_cast<std::chrono::seconds>(m_PLuaBattlefield->GetTimeLimit()).count());
     return 1;
 }
 
@@ -94,14 +94,14 @@ inline int32 CLuaBattlefield::getBcnmID(lua_State* L)
 inline int32 CLuaBattlefield::getTimeInside(lua_State* L) {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
     uint32 duration = std::chrono::duration_cast<std::chrono::seconds>(m_PLuaBattlefield->GetTimeInside()).count();
-    //lua_pushinteger(L, duration);
+    lua_pushinteger(L, duration);
     return 1;
 }
 
 inline int32 CLuaBattlefield::getFastestTime(lua_State* L) {
     DSP_DEBUG_BREAK_IF(m_PLuaBattlefield == nullptr);
 
-    //lua_pushinteger(L, m_PLuaBattlefield->GetCurrentRecord().time);
+    lua_pushinteger(L, std::chrono::duration_cast<std::chrono::seconds>(m_PLuaBattlefield->GetCurrentRecord().time).count());
     return 1;
 }
 
@@ -264,5 +264,8 @@ Lunar<CLuaBattlefield>::Register_t CLuaBattlefield::methods[] =
     LUNAR_DECLARE_METHOD(CLuaBattlefield,getAllies),
     LUNAR_DECLARE_METHOD(CLuaBattlefield,lose),
     LUNAR_DECLARE_METHOD(CLuaBattlefield,win),
+    LUNAR_DECLARE_METHOD(CLuaBattlefield,loadMobs),
+    LUNAR_DECLARE_METHOD(CLuaBattlefield,loadNPCs),
+    LUNAR_DECLARE_METHOD(CLuaBattlefield,insertEntity),
     {nullptr,nullptr}
 };

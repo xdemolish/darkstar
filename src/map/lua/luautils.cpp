@@ -81,6 +81,8 @@
 #include "../ai/states/ability_state.h"
 #include "../ai/states/mobskill_state.h"
 #include "../ai/states/magic_state.h"
+#include "../battlefield.h"
+#include "../battlefield_handler.h"
 
 namespace luautils
 {

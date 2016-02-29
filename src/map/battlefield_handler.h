@@ -27,25 +27,27 @@
 #include "../common/cbasetypes.h"
 #include "../common/mmo.h"
 
-#include "battlefield.h"
 #include <vector>
+#include <memory>
 
+class CBattlefield;
 class CCharEntity;
 class CMobEntity;
+class CZone;
 
 class CBattlefieldHandler
 {
 public:
 
     CBattlefieldHandler(CZone* PZone);
-    void	HandleBattlefields(time_point tick);							// called every tick to handle win/lose conditions, locking the bcnm, etc
+    void	HandleBattlefields(time_point tick);							    // called every tick to handle win/lose conditions, locking the bcnm, etc
     void    LoadBattlefield(CCharEntity* PChar, uint16 battlefield);
-    CBattlefield* GetBattlefield(CCharEntity*);                           // returns the battlefield a player is in
+    CBattlefield* GetBattlefield(CCharEntity* PChar);                           // returns the battlefield a player is in
 
 private:
     CZone*                     m_PZone;
     uint8                      m_MaxBattlefields; // usually 3 except dynamis, einherjar, besieged, ...
-    std::vector<CBattlefield*> m_Battlefields;    // area
+    std::vector<std::unique_ptr<CBattlefield>> m_Battlefields;    // area
 };
 
 #endif

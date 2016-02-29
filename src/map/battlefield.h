@@ -28,35 +28,37 @@
 #include "../common/mmo.h"
 #include <vector>
 #include <functional>
-#include "utils/battlefieldutils.h"
-#include "entities/baseentity.h"
 
-enum BCRULES {
-    RULES_ALLOW_SUBJOBS = 0x01,
-    RULES_LOSE_EXP = 0x02,
-    RULES_REMOVE_3MIN = 0x04,
+enum BCRULES
+{
+    RULES_ALLOW_SUBJOBS         = 0x01,
+    RULES_LOSE_EXP              = 0x02,
+    RULES_REMOVE_3MIN           = 0x04,
     RULES_SPAWN_TREASURE_ON_WIN = 0x08,
-    RULES_MAAT = 0x10
+    RULES_MAAT                  = 0x10
 };
 
-enum BCMOBCONDITIONS {
-    CONDITION_NONE = 0x00,
+enum BCMOBCONDITIONS
+{
+    CONDITION_NONE             = 0x00,
     CONDITION_SPAWNED_AT_START = 0x01,
-    CONDITION_WIN_REQUIREMENT = 0x02
+    CONDITION_WIN_REQUIREMENT  = 0x02
 };
 
-enum LEAVE_CODE {
-    LEAVE_EXIT = 1,
-    LEAVE_WIN = 2,
+enum LEAVE_CODE
+{
+    LEAVE_EXIT   = 1,
+    LEAVE_WIN    = 2,
     LEAVE_WARPDC = 3,
-    LEAVE_LOSE = 4
+    LEAVE_LOSE   = 4
 };
 
-enum BATTLEFIELD_STATUS {
-    BATTLEFIELD_STATUS_OPEN = 0,
+enum BATTLEFIELD_STATUS
+{
+    BATTLEFIELD_STATUS_OPEN   = 0,
     BATTLEFIELD_STATUS_LOCKED = 1,
-    BATTLEFIELD_STATUS_WON = 2,
-    BATTLEFIELD_STATUS_LOST = 3
+    BATTLEFIELD_STATUS_WON    = 2,
+    BATTLEFIELD_STATUS_LOST   = 3
 };
 
 class CNpcEntity;
@@ -84,6 +86,7 @@ class CBattlefield
 public:
 
     CBattlefield(uint16 id, CZone* PZone, uint8 area, CCharEntity* PInitiator);
+    ~CBattlefield();
 
     //bcnm related functions
     uint16              GetID();

@@ -22,6 +22,7 @@
 */
 
 #include <string.h>
+#include <algorithm>
 
 #include "ai/states/death_state.h"
 
@@ -44,6 +45,7 @@
 #include "utils/charutils.h"
 #include "utils/zoneutils.h"
 
+#include "zone.h"
 
 
 CBattlefieldHandler::CBattlefieldHandler(CZone* PZone)
@@ -54,18 +56,13 @@ CBattlefieldHandler::CBattlefieldHandler(CZone* PZone)
 
 void CBattlefieldHandler::HandleBattlefields(time_point tick)
 {
-    for (auto PBattlefield : m_Battlefields)
+    auto check = [](auto& battlefield) {return battlefield->GetStatus() == BATTLEFIELD_STATUS_LOCKED || battlefield->GetStatus() == BATTLEFIELD_STATUS_WON;};
+    for (auto& PBattlefield : m_Battlefields)
     {
-        luautils::OnBattlefieldTick(PBattlefield);
+        luautils::OnBattlefieldTick(PBattlefield.get());
+    };
 
-        if (PBattlefield->GetStatus() == BATTLEFIELD_STATUS_WON || PBattlefield->GetStatus() == BATTLEFIELD_STATUS_LOST)
-        {
-            PBattlefield->Cleanup();
-            m_Battlefields.erase(std::find(m_Battlefields.begin(), m_Battlefields.end(), PBattlefield));
-
-            delete PBattlefield;
-        }
-    }
+    m_Battlefields.erase(std::remove_if(m_Battlefields.begin(), m_Battlefields.end(), check), m_Battlefields.end());
 }
 
 void CBattlefieldHandler::LoadBattlefield(CCharEntity* PChar, uint16 battlefield)
@@ -75,25 +72,24 @@ void CBattlefieldHandler::LoadBattlefield(CCharEntity* PChar, uint16 battlefield
         auto area = i + 1;
         if (!m_Battlefields[i]->GetArea() == area)
         {
-            const int8* fmtQuery = "SELECT name, bcnmId, fastestName, fastestTime, timeLimit, levelCap, lootDropId, rules, partySize, zoneId \
-						    FROM bcnm_info \
-							WHERE bcnmId = %u";
+            const int8* fmtQuery = "SELECT name, battlefieldId, fastestName, fastestTime, timeLimit, levelCap, lootDropId, rules, partySize, zoneId \
+						    FROM battlefield_info \
+							WHERE battlefieldId = %u";
 
-            int32 ret = Sql_Query(SqlHandle, fmtQuery, PChar->GetLocalVar("bcnmid"));
+            int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield);
 
             if (ret == SQL_ERROR ||
                 Sql_NumRows(SqlHandle) == 0 ||
                 Sql_NextRow(SqlHandle) != SQL_SUCCESS)
             {
-                ShowError("Cannot load battlefield BCNM: %u \n", battlefield);
+                ShowError("Cannot load battlefield : %u \n", battlefield);
                 return;
             }
             else
             {
-                CBattlefield* PBattlefield = new CBattlefield(battlefield, m_PZone, area, PChar);
-                int8* tmpName;
-                Sql_GetData(SqlHandle, 0, &tmpName, nullptr);
-                PBattlefield->SetName(tmpName);
+                std::unique_ptr<CBattlefield> PBattlefield(new CBattlefield(battlefield, m_PZone, area, PChar));
+
+                PBattlefield->SetName(Sql_GetData(SqlHandle, 0));
                 PBattlefield->SetCurrentRecord(Sql_GetData(SqlHandle, 2), std::chrono::seconds(Sql_GetUIntData(SqlHandle, 3)));
                 PBattlefield->SetTimeLimit(std::chrono::seconds(Sql_GetUIntData(SqlHandle, 4)));
                 PBattlefield->SetLevelCap(Sql_GetUIntData(SqlHandle, 5));
@@ -101,7 +97,7 @@ void CBattlefieldHandler::LoadBattlefield(CCharEntity* PChar, uint16 battlefield
                 PBattlefield->SetMaxParticipants(Sql_GetUIntData(SqlHandle, 8));
                 PBattlefield->SetRuleMask((uint16)Sql_GetUIntData(SqlHandle, 7));
 
-                m_Battlefields.push_back(PBattlefield);
+                m_Battlefields.push_back(std::move(PBattlefield));
                 return;
             }
         }

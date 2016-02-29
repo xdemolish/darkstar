@@ -53,6 +53,13 @@ CBattlefield::CBattlefield(uint16 id, CZone* PZone, uint8 area, CCharEntity* PIn
     m_PZone = PZone;
     m_Area = area;
     m_Initiator = PInitiator->name.c_str();
+
+    InsertEntity(PInitiator);
+}
+
+CBattlefield::~CBattlefield()
+{
+    Cleanup();
 }
 
 uint16 CBattlefield::GetID()
@@ -334,19 +341,17 @@ void CBattlefield::Cleanup()
     ForEachNpc([](CNpcEntity* PNpc)
     {
         PNpc->loc.zone->PushPacket(PNpc, CHAR_INRANGE, new CEntityAnimationPacket(PNpc, CEntityAnimationPacket::Fade_Out));
-        PNpc->animation = ANIMATION_DEATH;
-        PNpc->status = STATUS_MOB;
-        PNpc->loc.zone->PushPacket(PNpc, CHAR_INRANGE, new CEntityUpdatePacket(PNpc, ENTITY_UPDATE, UPDATE_COMBAT));
+        PNpc->PAI->Despawn();
     });
     //wipe npc list
     m_NpcList.clear();
 
-    for (auto PAlly : m_AllyList)
+    ForEachAlly([&](CMobEntity* PAlly)
     {
         PAlly->PAI->Despawn();
-        zoneutils::GetZone(GetZoneID())->DeletePET(PAlly);
+        GetZone()->DeletePET(PAlly);
         delete PAlly;
-    }
+    });
     m_AllyList.clear();
 
     luautils::OnBcnmDestroy(this);

@@ -36,6 +36,8 @@
 #include "../battlefield_handler.h"
 #include "../packets/entity_update.h"
 #include "../ai/ai_container.h"
+#include "../status_effect_container.h"
+#include "../status_effect.h"
 
 namespace battlefieldutils {
     /***************************************************************
@@ -60,15 +62,15 @@ namespace battlefieldutils {
 
         //get ids from DB
         const int8* fmtQuery = "SELECT monsterId, conditions \
-						    FROM bcnm_battlefield \
-							WHERE bcnmId = %u AND battlefieldNumber = %u";
+						    FROM battlefield_mobs \
+							WHERE battlefieldId = %u AND battlefieldNumber = %u";
 
         int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetID(), battlefield->GetArea());
 
         if (ret == SQL_ERROR ||
             Sql_NumRows(SqlHandle) == 0)
         {
-            ShowError("spawnMonstersForBcnm : SQL error - Cannot find any monster IDs for BCNMID %i Battlefield %i \n",
+            ShowError("battlefieldutils::spawnMonstersForBcnm() : SQL error - Cannot find any monster IDs for BCNMID %i Battlefield %i \n",
                 battlefield->GetID(), battlefield->GetArea());
         }
         else {
@@ -79,8 +81,11 @@ namespace battlefieldutils {
                 if (PMob != nullptr)
                 {
 
-                    PMob->m_battlefieldID = battlefield->GetArea();
-                    PMob->m_bcnmID = battlefield->GetID();
+                    //PMob->m_battlefieldID = battlefield->GetArea();
+                    //PMob->m_bcnmID = battlefield->GetID();
+
+                    PMob->StatusEffectContainer->AddStatusEffect(new CStatusEffect(EFFECT_BATTLEFIELD, EFFECT_BATTLEFIELD, battlefield->GetID(),
+                        0, std::chrono::duration_cast<std::chrono::seconds>(battlefield->GetTimeLimit()).count(), battlefield->GetArea()));
 
                     if (condition & CONDITION_SPAWNED_AT_START)
                     {
@@ -117,14 +122,14 @@ namespace battlefieldutils {
 
         //get ids from DB
         const int8* fmtQuery = "SELECT npcId \
-						    FROM bcnm_treasure_chests \
-							WHERE bcnmId = %u AND battlefieldNumber = %u";
+						    FROM battlefield_treasure_chests \
+							WHERE battlefieldId = %u AND battlefieldNumber = %u";
 
         int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetID(), battlefield->GetArea());
 
         if (ret == SQL_ERROR || Sql_NumRows(SqlHandle) == 0)
         {
-            ShowError("spawnTreasureForBcnm : SQL error - Cannot find any npc IDs for BCNMID %i Battlefield %i \n",
+            ShowError("spawnTreasureForBcnm : SQL error - Cannot find any npc IDs for battlefieldId %i battlefieldNumber %i \n",
                 battlefield->GetID(), battlefield->GetArea());
         }
         else
@@ -299,13 +304,13 @@ namespace battlefieldutils {
 
     uint8 getMaxLootGroups(CBattlefield* battlefield) {
         const int8* fmtQuery = "SELECT MAX(lootGroupId) \
-						FROM bcnm_loot \
-						JOIN bcnm_info ON bcnm_info.LootDropId = bcnm_loot.LootDropId \
-						WHERE bcnm_info.LootDropId = %u LIMIT 1";
+						FROM battlefield_loot \
+						JOIN battlefield_info ON battlefield_info.LootDropId = battlefield_loot.LootDropId \
+						WHERE battlefield_info.LootDropId = %u LIMIT 1";
 
         int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetLootID());
         if (ret == SQL_ERROR || Sql_NumRows(SqlHandle) == 0 || Sql_NextRow(SqlHandle) != SQL_SUCCESS) {
-            ShowError("SQL error occured \n");
+            ShowError("battlefieldutils::getMaxLootGroups() : SQL error occured \n");
             return 0;
         }
         else {
@@ -319,11 +324,11 @@ namespace battlefieldutils {
 			AND lootGroupId = %u \
 			THEN rolls  \
 			ELSE 0 END) \
-			FROM bcnm_loot;";
+			FROM battlefield_loot;";
 
         int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetLootID(), groupID);
         if (ret == SQL_ERROR || Sql_NumRows(SqlHandle) == 0 || Sql_NextRow(SqlHandle) != SQL_SUCCESS) {
-            ShowError("SQL error occured \n");
+            ShowError("battlefieldutils::getRollsPerGroup() : SQL error occured \n");
             return 0;
         }
         else {
@@ -341,7 +346,7 @@ namespace battlefieldutils {
         LootList_t* LootList = itemutils::GetLootList(battlefield->GetLootID());
 
         if (LootList == nullptr) {
-            ShowError("BCNM Chest opened with no valid loot list!");
+            ShowError("battlefieldutils::getChestItems() : battlefieldId %u battlefieldNumber %u chest opened with no valid loot list!", battlefield->GetID(), battlefield->GetArea());
             //no loot available for bcnm. End bcnm.
             // todo: battlefield->winBcnm();
             return;
