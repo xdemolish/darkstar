@@ -41,6 +41,8 @@
 #include "packets/message_basic.h"
 
 #include "recast_container.h"
+#include "status_effect.h"
+#include "status_effect_container.h"
 
 #include "utils/charutils.h"
 #include "utils/zoneutils.h"
@@ -56,7 +58,7 @@ CBattlefieldHandler::CBattlefieldHandler(CZone* PZone)
 
 void CBattlefieldHandler::HandleBattlefields(time_point tick)
 {
-    auto check = [](auto& battlefield) {return battlefield->GetStatus() == BATTLEFIELD_STATUS_LOCKED || battlefield->GetStatus() == BATTLEFIELD_STATUS_WON;};
+    auto check = [](auto& battlefield) {return battlefield->GetStatus() == BATTLEFIELD_STATUS_LOST || battlefield->GetStatus() == BATTLEFIELD_STATUS_WON;};
     for (auto& PBattlefield : m_Battlefields)
     {
         luautils::OnBattlefieldTick(PBattlefield.get());
@@ -65,12 +67,12 @@ void CBattlefieldHandler::HandleBattlefields(time_point tick)
     m_Battlefields.erase(std::remove_if(m_Battlefields.begin(), m_Battlefields.end(), check), m_Battlefields.end());
 }
 
-void CBattlefieldHandler::LoadBattlefield(CCharEntity* PChar, uint16 battlefield)
+CBattlefield* CBattlefieldHandler::LoadBattlefield(CCharEntity* PChar, uint16 battlefield)
 {
     for (auto i = 0; i < m_MaxBattlefields; ++i)
     {
         auto area = i + 1;
-        if (!m_Battlefields[i]->GetArea() == area)
+        if (m_Battlefields[i]->GetArea() != area)
         {
             const int8* fmtQuery = "SELECT name, battlefieldId, fastestName, fastestTime, timeLimit, levelCap, lootDropId, rules, partySize, zoneId \
 						    FROM battlefield_info \
@@ -83,7 +85,7 @@ void CBattlefieldHandler::LoadBattlefield(CCharEntity* PChar, uint16 battlefield
                 Sql_NextRow(SqlHandle) != SQL_SUCCESS)
             {
                 ShowError("Cannot load battlefield : %u \n", battlefield);
-                return;
+                return nullptr;
             }
             else
             {
@@ -98,8 +100,59 @@ void CBattlefieldHandler::LoadBattlefield(CCharEntity* PChar, uint16 battlefield
                 PBattlefield->SetRuleMask((uint16)Sql_GetUIntData(SqlHandle, 7));
 
                 m_Battlefields.push_back(std::move(PBattlefield));
-                return;
+                return PBattlefield.get();
             }
         }
     }
+    return nullptr;
+}
+
+CBattlefield* CBattlefieldHandler::GetBattlefield(CCharEntity* PChar)
+{
+    for (auto& PBattlefield : m_Battlefields)
+    {
+        PBattlefield->ForEachPlayer([PChar, &PBattlefield](CCharEntity* PPlayer)
+        {
+            if (PPlayer == PChar)
+            {
+                return PBattlefield.get();
+            }
+        });
+    }
+    return nullptr;
+}
+
+CBattlefield* CBattlefieldHandler::EnterBattlefield(CCharEntity* PChar, uint16 battlefield, uint8 area)
+{
+    bool exists = false;
+    // attempt to add to an existing battlefield
+
+    auto PBattlefield = GetBattlefield(PChar);
+
+    if (PBattlefield->GetID() == battlefield && PBattlefield->GetArea() == area)
+    {
+        if (RemoveFromBattlefield(PChar, PBattlefield))
+            return nullptr;
+
+        if (!PBattlefield->InProgress() && (exists = PBattlefield->IsOccupied()))
+        {
+            PBattlefield->InsertEntity(PChar);
+            return PBattlefield;
+        }
+    }
+
+    return exists ? nullptr : LoadBattlefield(PChar, battlefield);
+}
+
+bool CBattlefieldHandler::RemoveFromBattlefield(CCharEntity* PChar, CBattlefield* PBattlefield, uint8 leavecode)
+{
+    if (!PBattlefield)
+    {
+        PBattlefield = GetBattlefield(PChar);
+    }
+
+    // just in case
+    DSP_DEBUG_BREAK_IF(PBattlefield == nullptr);
+
+    return PBattlefield->RemoveEntity(PChar, leavecode);
 }

@@ -143,7 +143,7 @@ inline int32 CLuaBattlefield::insertAlly(lua_State* L)
     CMobEntity* PAlly = mobutils::InstantiateAlly(groupid, m_PLuaBattlefield->GetZoneID());
     if (PAlly)
     {
-        m_PLuaBattlefield->InsertEntity(PAlly, true);
+        m_PLuaBattlefield->InsertEntity(PAlly);
         PAlly->PBattlefield = m_PLuaBattlefield;
         PAlly->StatusEffectContainer->AddStatusEffect(new CStatusEffect(EFFECT_BATTLEFIELD, EFFECT_BATTLEFIELD, m_PLuaBattlefield->GetID(), 0, 0), true);
         lua_getglobal(L, CLuaBaseEntity::className);
@@ -230,7 +230,7 @@ inline int32 CLuaBattlefield::insertEntity(lua_State* L)
 
     if (PEntity)
     {
-        m_PLuaBattlefield->InsertEntity(PEntity, ally, conditions);
+        m_PLuaBattlefield->InsertEntity(PEntity, conditions);
         CLuaBaseEntity LuaBaseEntity(PEntity);
         Lunar<CLuaBaseEntity>::push(L, &LuaBaseEntity);
     }

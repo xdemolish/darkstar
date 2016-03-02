@@ -212,8 +212,8 @@ public:
     int32 addGuildPoints(lua_State*);       // add guild points
 
     int32 bcnmRegister(lua_State*);                  //Attempts to register a bcnm battlefield (used by Dynamis and BCNM)
-    int32 bcnmEnter(lua_State*);                     //Enter a bcnm battlefield (used by Dynamis and BCNM)
-    int32 bcnmLeave(lua_State*);                     //Leave a bcnm battlefield
+    int32 enterBattlefield(lua_State*);                     //Enter a bcnm battlefield (used by Dynamis and BCNM)
+    int32 leaveBattlefield(lua_State*);                     //Leave a bcnm battlefield
     int32 isInBcnm(lua_State*);                      //true if you're INSIDE the bc (not just the status)
     int32 isBcnmsFull(lua_State*);                   //true if all 3 battlefield are full
     //int32 isSpecialBattlefieldEmpty(lua_State*);     // 1 if this battlefield is full

@@ -21,68 +21,75 @@
 ===========================================================================
 */
 
+#include <cstdio>
+#include <string.h>
+#include <unordered_map>
+
 #include "../../common/showmsg.h"
 #include "../../common/timer.h"
 #include "../../common/utils.h"
 
-#include <string.h>
-#include <unordered_map>
-#include <cstdio>
-
-#include "luautils.h"
-#include "lua_action.h"
-#include "lua_battlefield.h"
-#include "lua_region.h"
-#include "lua_instance.h"
-#include "lua_spell.h"
-#include "lua_statuseffect.h"
-#include "lua_mobskill.h"
-#include "lua_trade_container.h"
-#include "lua_zone.h"
-#include "lua_item.h"
-
 #include "../ability.h"
-#include "../entities/baseentity.h"
-#include "../utils/battleutils.h"
-#include "../entities/charentity.h"
-#include "../conquest_system.h"
-#include "../map.h"
-#include "../mobskill.h"
-#include "../party.h"
-#include "../alliance.h"
-#include "../entities/mobentity.h"
-#include "../spell.h"
-#include "../weapon_skill.h"
-#include "../vana_time.h"
-#include "../utils/zoneutils.h"
-#include "../transport.h"
-#include "../packets/action.h"
-#include "../packets/char_update.h"
-#include "../packets/entity_update.h"
-#include "../packets/menu_raisetractor.h"
-#include "../packets/entity_visual.h"
-#include "../items/item_puppet.h"
-#include "../entities/automatonentity.h"
-#include "../utils/itemutils.h"
-#include "../utils/charutils.h"
-#include "../conquest_system.h"
-#include "../weapon_skill.h"
-#include "../status_effect_container.h"
-#include "../instance.h"
+
 #include "../ai/ai_container.h"
+#include "../ai/states/ability_state.h"
 #include "../ai/states/attack_state.h"
 #include "../ai/states/death_state.h"
 #include "../ai/states/despawn_state.h"
 #include "../ai/states/inactive_state.h"
-#include "../ai/states/raise_state.h"
 #include "../ai/states/item_state.h"
+#include "../ai/states/magic_state.h"
+#include "../ai/states/mobskill_state.h"
+#include "../ai/states/raise_state.h"
 #include "../ai/states/range_state.h"
 #include "../ai/states/weaponskill_state.h"
-#include "../ai/states/ability_state.h"
-#include "../ai/states/mobskill_state.h"
-#include "../ai/states/magic_state.h"
+
+#include "../alliance.h"
 #include "../battlefield.h"
 #include "../battlefield_handler.h"
+#include "../conquest_system.h"
+
+#include "../entities/automatonentity.h"
+#include "../entities/baseentity.h"
+#include "../entities/charentity.h"
+#include "../entities/mobentity.h"
+
+#include "../instance.h"
+#include "../items/item_puppet.h"
+#include "../map.h"
+#include "../mobskill.h"
+
+#include "../packets/action.h"
+#include "../packets/char_update.h"
+#include "../packets/entity_update.h"
+#include "../packets/entity_visual.h"
+#include "../packets/menu_raisetractor.h"
+
+#include "../party.h"
+#include "../spell.h"
+#include "../status_effect_container.h"
+#include "../transport.h"
+
+#include "../utils/battleutils.h"
+#include "../utils/charutils.h"
+#include "../utils/itemutils.h"
+#include "../utils/zoneutils.h"
+
+#include "../vana_time.h"
+#include "../weapon_skill.h"
+#include "../weapon_skill.h"
+
+#include "lua_action.h"
+#include "lua_battlefield.h"
+#include "lua_instance.h"
+#include "lua_item.h"
+#include "lua_mobskill.h"
+#include "lua_region.h"
+#include "lua_spell.h"
+#include "lua_statuseffect.h"
+#include "lua_trade_container.h"
+#include "lua_zone.h"
+#include "luautils.h"
 
 namespace luautils
 {

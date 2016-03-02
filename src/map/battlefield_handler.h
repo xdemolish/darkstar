@@ -41,9 +41,10 @@ public:
 
     CBattlefieldHandler(CZone* PZone);
     void	HandleBattlefields(time_point tick);							    // called every tick to handle win/lose conditions, locking the bcnm, etc
-    void    LoadBattlefield(CCharEntity* PChar, uint16 battlefield);
+    CBattlefield* LoadBattlefield(CCharEntity* PChar, uint16 battlefield);
     CBattlefield* GetBattlefield(CCharEntity* PChar);                           // returns the battlefield a player is in
-
+    CBattlefield* EnterBattlefield(CCharEntity* PChar, uint16 battlefield, uint8 area);
+    bool          RemoveFromBattlefield(CCharEntity* PChar, CBattlefield* PBattlefield = nullptr, uint8 leavecode = 0);
 private:
     CZone*                     m_PZone;
     uint8                      m_MaxBattlefields; // usually 3 except dynamis, einherjar, besieged, ...

@@ -43,7 +43,9 @@
 #include "packets/position.h"
 
 #include "status_effect_container.h"
+#include "treasure_pool.h"
 
+#include "utils/itemutils.h"
 #include "utils/zoneutils.h"
 #include "zone.h"
 
@@ -52,9 +54,12 @@ CBattlefield::CBattlefield(uint16 id, CZone* PZone, uint8 area, CCharEntity* PIn
     m_ID = id;
     m_PZone = PZone;
     m_Area = area;
-    m_Initiator = PInitiator->name.c_str();
+    m_Initiator.id = PInitiator->id;
+    m_Initiator.name = PInitiator->name;
 
     InsertEntity(PInitiator);
+
+    m_StartTime = server_clock::now();
 }
 
 CBattlefield::~CBattlefield()
@@ -82,7 +87,7 @@ string_t CBattlefield::GetName()
     return m_Name;
 }
 
-string_t CBattlefield::GetInitiator()
+BattlefieldInitiator_t CBattlefield::GetInitiator()
 {
     return m_Initiator;
 }
@@ -161,8 +166,8 @@ void CBattlefield::SetName(int8* name)
 
 void CBattlefield::SetInitiator(int8* name)
 {
-    m_Initiator.clear();
-    m_Initiator.insert(0, name);
+    m_Initiator.name.clear();
+    m_Initiator.name.insert(0, name);
 }
 
 void CBattlefield::SetTimeLimit(duration time)
@@ -291,7 +296,7 @@ bool CBattlefield::IsOccupied()
     return m_PlayerList.size() > 0;
 }
 
-bool CBattlefield::InsertEntity(CBaseEntity* PEntity, bool ally, BCMOBCONDITIONS conditions)
+bool CBattlefield::InsertEntity(CBaseEntity* PEntity, BCMOBCONDITIONS conditions)
 {
     if (PEntity->objtype == TYPE_PC)
     {
@@ -306,6 +311,8 @@ bool CBattlefield::InsertEntity(CBaseEntity* PEntity, bool ally, BCMOBCONDITIONS
     }
     else if (PEntity->objtype == TYPE_MOB)
     {
+        auto ally = PEntity->allegiance == ALLEGIANCE_PLAYER;
+
         // mobs
         if (!ally)
         {
@@ -321,8 +328,44 @@ bool CBattlefield::InsertEntity(CBaseEntity* PEntity, bool ally, BCMOBCONDITIONS
             m_AllyList.push_back(static_cast<CMobEntity*>(PEntity));
         }
     }
+
+    auto entity = dynamic_cast<CBattleEntity*>(PEntity);
+
+    if (entity && !entity->StatusEffectContainer->GetStatusEffect(EFFECT_BATTLEFIELD))
+        entity->StatusEffectContainer->AddStatusEffect(new CStatusEffect(EFFECT_BATTLEFIELD, EFFECT_BATTLEFIELD, this->GetID(),
+            0, 0, this->GetArea()));
+
     PEntity->PBattlefield = this;
     return true;
+}
+
+bool CBattlefield::RemoveEntity(CBaseEntity* PEntity, uint8 leavecode)
+{
+    auto found = false;
+    auto check = [PEntity, &found](auto entity) { if (PEntity == entity) { found = true; return found; } return false; };
+
+    if (PEntity->objtype == TYPE_PC)
+    {
+        m_PlayerList.erase(std::remove_if(m_PlayerList.begin(), m_PlayerList.end(), check), m_PlayerList.end());
+
+        luautils::OnBcnmLeave(static_cast<CCharEntity*>(PEntity), this, leavecode);
+    }
+    else if (PEntity->objtype == TYPE_NPC)
+    {
+        m_NpcList.erase(std::remove_if(m_NpcList.begin(), m_NpcList.end(), check), m_NpcList.end());
+    }
+    else if (PEntity->objtype == TYPE_MOB && PEntity->allegiance == ALLEGIANCE_PLAYER)
+    {
+        m_AllyList.erase(std::remove_if(m_AllyList.begin(), m_AllyList.end(), check), m_AllyList.end());
+    }
+    else
+    {
+        auto check = [PEntity, &found](auto entity) { if (entity.PMob == PEntity) { found = true; return found; } return false; };
+
+        m_EnemyList.erase(std::remove_if(m_EnemyList.begin(), m_EnemyList.end(), check), m_EnemyList.end());
+    }
+    PEntity->PBattlefield = nullptr;
+    return found;
 }
 
 void CBattlefield::Cleanup()
@@ -367,19 +410,62 @@ void CBattlefield::Cleanup()
 
 bool CBattlefield::SpawnTreasureChest()
 {
-    //todo: battlefieldutils::spawnTreasureForBcnm(this);
-    return true;
+    //get ids from DB
+    const int8* fmtQuery = "SELECT npcId \
+						    FROM battlefield_treasure_chests \
+							WHERE battlefieldId = %u AND battlefieldNumber = %u";
+
+    int32 ret = Sql_Query(SqlHandle, fmtQuery, this->GetID(), this->GetArea());
+
+    if (ret == SQL_ERROR || Sql_NumRows(SqlHandle) == 0)
+    {
+        ShowError("Battlefield::SpawnTreasureChest : SQL error - Cannot find any npc IDs for battlefieldId %i battlefieldNumber %i \n",
+            this->GetID(), this->GetArea());
+    }
+    else
+    {
+        while (Sql_NextRow(SqlHandle) == SQL_SUCCESS)
+        {
+            uint32 npcid = Sql_GetUIntData(SqlHandle, 0);
+            CBaseEntity* PNpc = (CBaseEntity*)zoneutils::GetEntity(npcid, TYPE_NPC);
+            if (PNpc)
+            {
+                PNpc->Spawn();
+                this->InsertEntity(PNpc);
+            }
+            else
+            {
+                ShowDebug(CL_CYAN"Battlefield::SpawnTreasureChest: <%s> is already spawned\n" CL_RESET, PNpc->GetName());
+            }
+        }
+        return true;
+    }
+    return false;
 }
 
-void CBattlefield::OpenChestinBcnm()
+void CBattlefield::OpenChest()
 {
-    //todo: handle chestsB
+    auto LootList = itemutils::GetLootList(GetLootID());
+
+    if (LootList)
+    {
+        for (auto i = 0; i < LootList->size(); ++i)
+        {
+            // todo: handle loot
+        }
+    }
+
+    // start the event, they won
+    ForEachPlayer([&](CCharEntity* PChar)
+    {
+        luautils::OnBcnmLeave(PChar, this, LEAVE_WIN);
+    });
 }
 
 bool CBattlefield::LoseBcnm()
 {
     // todo: handle losing
-    ForEachPlayer([this](CCharEntity* PChar)
+    ForEachPlayer([&](CCharEntity* PChar)
     {
         luautils::OnBcnmLeave(PChar, this, LEAVE_LOSE);
     });
@@ -396,12 +482,18 @@ void CBattlefield::ClearPlayerEnmity(CCharEntity* PChar)
 
 bool CBattlefield::InProgress()
 {
-    ForEachEnemy([](CMobEntity* PMob)
+    ForEachEnemy([&](CMobEntity* PMob)
     {
         if (PMob->PEnmityContainer->GetEnmityList()->size())
+        {
+            if (m_Status == BATTLEFIELD_STATUS_OPEN)
+                SetStatus(BATTLEFIELD_STATUS_LOCKED);
+
             return true;
+        }
     });
 
+    // mobs might have 0 enmity but we wont allow anymore players to enter
     return m_Status != BATTLEFIELD_STATUS_OPEN;
 }
 
@@ -425,7 +517,7 @@ void CBattlefield::ForEachRequiredEnemy(std::function<void(CMobEntity*)> func)
 {
     for (auto mob : m_EnemyList)
     {
-        if (mob.condition)
+        if (mob.condition & CONDITION_WIN_REQUIREMENT)
             func((CMobEntity*)mob.PMob);
     }
 }
@@ -434,7 +526,7 @@ void CBattlefield::ForEachAdditionalEnemy(std::function<void(CMobEntity*)> func)
 {
     for (auto mob : m_EnemyList)
     {
-        if (mob.condition)
+        if (mob.condition == CONDITION_NONE)
             func((CMobEntity*)mob.PMob);
     }
 }

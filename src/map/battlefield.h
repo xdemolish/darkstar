@@ -24,10 +24,11 @@
 #ifndef _CBATTLEFIELD_H
 #define _CBATTLEFIELD_H
 
-#include "../common/cbasetypes.h"
-#include "../common/mmo.h"
 #include <vector>
 #include <functional>
+
+#include "../common/cbasetypes.h"
+#include "../common/mmo.h"
 
 enum BCRULES
 {
@@ -81,6 +82,12 @@ typedef struct
 } BattlefieldRecord_t;
 
 
+typedef struct
+{
+    string_t name;
+    uint32 id;
+} BattlefieldInitiator_t;
+
 class CBattlefield
 {
 public:
@@ -89,97 +96,99 @@ public:
     ~CBattlefield();
 
     //bcnm related functions
-    uint16              GetID();
-    CZone*              GetZone();
-    uint16              GetZoneID();
-    string_t            GetName();
-    string_t            GetInitiator();
-    uint8               GetArea();
-    BattlefieldRecord_t GetCurrentRecord();
-    uint8               GetStatus();
-    uint16              GetRuleMask();
-    time_point          GetStartTime();
-    duration            GetTimeInside();
-    duration            GetFightTime();
-    duration            GetTimeLimit();
-    duration            GetAllDeadTime();
-    uint8               GetMaxParticipants();
-    uint8               GetPlayerCount();
-    uint8               GetLevelCap();
-    uint16              GetLootID();
-    duration            GetFinishTime();
+    uint16                 GetID();
+    CZone*                 GetZone();
+    uint16                 GetZoneID();
+    string_t               GetName();
+    BattlefieldInitiator_t GetInitiator();
+    uint8                  GetArea();
+    BattlefieldRecord_t    GetCurrentRecord();
+    uint8                  GetStatus();
+    uint16                 GetRuleMask();
+    time_point             GetStartTime();
+    duration               GetTimeInside();
+    duration               GetFightTime();
+    duration               GetTimeLimit();
+    duration               GetAllDeadTime();
+    uint8                  GetMaxParticipants();
+    uint8                  GetPlayerCount();
+    uint8                  GetLevelCap();
+    uint16                 GetLootID();
+    duration               GetFinishTime();
 
-    bool                AllPlayersDead();
-    bool                InProgress();
-    bool                IsOccupied();
+    bool                   AllPlayersDead();
+    bool                   InProgress();
+    bool                   IsOccupied();
 
-    void                ForEachPlayer(std::function<void(CCharEntity*)> func);
-    void                ForEachEnemy(std::function<void(CMobEntity*)> func);
-    void                ForEachRequiredEnemy(std::function<void(CMobEntity*)> func);
-    void                ForEachAdditionalEnemy(std::function<void(CMobEntity*)> func);
-    void                ForEachNpc(std::function<void(CNpcEntity*)> func);
-    void                ForEachAlly(std::function<void(CMobEntity*)> func);
+    void                   ForEachPlayer(std::function<void(CCharEntity*)> func);
+    void                   ForEachEnemy(std::function<void(CMobEntity*)> func);
+    void                   ForEachRequiredEnemy(std::function<void(CMobEntity*)> func);
+    void                   ForEachAdditionalEnemy(std::function<void(CMobEntity*)> func);
+    void                   ForEachNpc(std::function<void(CNpcEntity*)> func);
+    void                   ForEachAlly(std::function<void(CMobEntity*)> func);
 
-    void                SetID(uint16 id);
-    void                SetName(int8* name);
-    void                SetInitiator(int8* name);
-    void                SetArea(uint8 area);
-    void                SetCurrentRecord(int8* name, duration time);
-    void                SetStatus(uint8 status);
-    void                SetRuleMask(uint16 rulemask);
-    void                SetStartTime(time_point time);
-    void                SetFightTime(duration time);
-    void                SetTimeLimit(duration time);
-    void                SetAllDeadTime(duration time);
-    void                SetMaxParticipants(uint8 max);
-    void                SetLevelCap(uint8 cap);
-    void                SetLootID(uint16 id);
+    void                   SetID(uint16 id);
+    void                   SetName(int8* name);
+    void                   SetInitiator(int8* name);
+    void                   SetArea(uint8 area);
+    void                   SetCurrentRecord(int8* name, duration time);
+    void                   SetStatus(uint8 status);
+    void                   SetRuleMask(uint16 rulemask);
+    void                   SetStartTime(time_point time);
+    void                   SetFightTime(duration time);
+    void                   SetTimeLimit(duration time);
+    void                   SetAllDeadTime(duration time);
+    void                   SetMaxParticipants(uint8 max);
+    void                   SetLevelCap(uint8 cap);
+    void                   SetLootID(uint16 id);
 
-    void                ApplyLevelCap(CCharEntity* PChar);
-    void                ClearPlayerEnmity(CCharEntity* PChar);
-    bool                InsertEntity(CBaseEntity* PEntity, bool ally = false, BCMOBCONDITIONS conditions = CONDITION_NONE);
-    void                Cleanup();
+    void                   ApplyLevelCap(CCharEntity* PChar);
+    void                   ClearPlayerEnmity(CCharEntity* PChar);
+    bool                   InsertEntity(CBaseEntity* PEntity, BCMOBCONDITIONS conditions = CONDITION_NONE);
+    bool                   RemoveEntity(CBaseEntity* PEntity, uint8 leavecode = 0);
+    void                   Cleanup();
+    void                   LoadMobs();
     //player related functions
 
-    void                PushMessageToAllInBcnm(uint16 msg, uint16 param);
+    void                   PushMessageToAllInBcnm(uint16 msg, uint16 param);
 
-    bool                SpawnTreasureChest();
-    bool                TreasureChestSpawned;
-    void                OpenChestinBcnm();
+    bool                   SpawnTreasureChest();
+    bool                   TreasureChestSpawned;
+    void                   OpenChest();
 
     //mob related functions
-    //bool              spawnAllEnemies();
-    //bool              resetAllEnemySpawnPositions();
+    //bool                 spawnAllEnemies();
+    //bool                 resetAllEnemySpawnPositions();
 
-    bool                AllEnemiesDefeated();
+    bool                   AllEnemiesDefeated();
 
     //handler functions (time/multiple rounds/etc)
 
-    bool                LoseBcnm();
-
-private:
-    uint16              m_ID;
-    CZone*              m_PZone;
-    string_t            m_Name;
-    string_t            m_Initiator;
-    uint8               m_Area;
-    BattlefieldRecord_t m_CurrentRecord;
-    uint8               m_Status;
-    uint16              m_Rules;
-    time_point          m_StartTime;
-    time_point          m_Tick;
-    duration            m_FightTick;
-    duration            m_TimeLimit;
-    duration            m_AllDeadTime;
-    duration            m_FinishTime;
-    uint8               m_MaxParticipants;
-    uint8               m_LevelCap;
-    uint32              m_LootID;
+    bool                   LoseBcnm();
 
     std::vector<CCharEntity*>     m_PlayerList;
     std::vector<CNpcEntity*>      m_NpcList;
     std::vector<BattlefieldMob_t> m_EnemyList;
     std::vector<CMobEntity*>      m_AllyList;
+
+private:
+    uint16                 m_ID;
+    CZone*                 m_PZone;
+    string_t               m_Name;
+    BattlefieldInitiator_t m_Initiator;
+    uint8                  m_Area;
+    BattlefieldRecord_t    m_CurrentRecord;
+    uint8                  m_Status;
+    uint16                 m_Rules;
+    time_point             m_StartTime;
+    time_point             m_Tick;
+    duration               m_FightTick;
+    duration               m_TimeLimit;
+    duration               m_AllDeadTime;
+    duration               m_FinishTime;
+    uint8                  m_MaxParticipants;
+    uint8                  m_LevelCap;
+    uint32                 m_LootID;
 };
 
 #endif

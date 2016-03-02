@@ -73,37 +73,36 @@ namespace battlefieldutils {
             ShowError("battlefieldutils::spawnMonstersForBcnm() : SQL error - Cannot find any monster IDs for BCNMID %i Battlefield %i \n",
                 battlefield->GetID(), battlefield->GetArea());
         }
-        else {
-            while (Sql_NextRow(SqlHandle) == SQL_SUCCESS) {
+        else
+        {
+            while (Sql_NextRow(SqlHandle) == SQL_SUCCESS)
+            {
                 uint32 mobid = Sql_GetUIntData(SqlHandle, 0);
                 uint8 condition = Sql_GetUIntData(SqlHandle, 1);
                 CMobEntity* PMob = (CMobEntity*)zoneutils::GetEntity(mobid, TYPE_MOB);
+
                 if (PMob != nullptr)
                 {
-
-                    //PMob->m_battlefieldID = battlefield->GetArea();
-                    //PMob->m_bcnmID = battlefield->GetID();
-
-                    PMob->StatusEffectContainer->AddStatusEffect(new CStatusEffect(EFFECT_BATTLEFIELD, EFFECT_BATTLEFIELD, battlefield->GetID(),
-                        0, std::chrono::duration_cast<std::chrono::seconds>(battlefield->GetTimeLimit()).count(), battlefield->GetArea()));
-
                     if (condition & CONDITION_SPAWNED_AT_START)
                     {
                         if (!PMob->PAI->IsSpawned())
                         {
                             PMob->Spawn();
                             //ShowDebug("Spawned %s (%u) id %i inst %i \n",PMob->GetName(),PMob->id,battlefield->GetID(),battlefield->GetArea());
-                            battlefield->InsertEntity(PMob, false, (BCMOBCONDITIONS)condition);
+                            battlefield->InsertEntity(PMob, (BCMOBCONDITIONS)condition);
                         }
-                        else {
+                        else
+                        {
                             ShowDebug(CL_CYAN"SpawnMobForBcnm: <%s> (%u) is already spawned\n" CL_RESET, PMob->GetName(), PMob->id);
                         }
                     }
-                    else {
-                        battlefield->InsertEntity(PMob, false, (BCMOBCONDITIONS)condition);
+                    else
+                    {
+                        battlefield->InsertEntity(PMob, (BCMOBCONDITIONS)condition);
                     }
                 }
-                else {
+                else
+                {
                     ShowDebug("SpawnMobForBcnm: mob %u not found\n", mobid);
                 }
             }
@@ -118,42 +117,7 @@ namespace battlefieldutils {
         Spawns treasure chest/armory crate, what ever on winning bcnm
     ****************************************************************/
     bool spawnTreasureForBcnm(CBattlefield* battlefield) {
-        DSP_DEBUG_BREAK_IF(battlefield == nullptr);
 
-        //get ids from DB
-        const int8* fmtQuery = "SELECT npcId \
-						    FROM battlefield_treasure_chests \
-							WHERE battlefieldId = %u AND battlefieldNumber = %u";
-
-        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetID(), battlefield->GetArea());
-
-        if (ret == SQL_ERROR || Sql_NumRows(SqlHandle) == 0)
-        {
-            ShowError("spawnTreasureForBcnm : SQL error - Cannot find any npc IDs for battlefieldId %i battlefieldNumber %i \n",
-                battlefield->GetID(), battlefield->GetArea());
-        }
-        else
-        {
-            while (Sql_NextRow(SqlHandle) == SQL_SUCCESS)
-            {
-                uint32 npcid = Sql_GetUIntData(SqlHandle, 0);
-                CBaseEntity* PNpc = (CBaseEntity*)zoneutils::GetEntity(npcid, TYPE_NPC);
-                if (PNpc != nullptr)
-                {
-                    PNpc->status = STATUS_NORMAL;
-                    PNpc->animation = 0;
-                    PNpc->loc.zone->PushPacket(PNpc, CHAR_INRANGE, new CEntityUpdatePacket(PNpc, ENTITY_SPAWN, UPDATE_ALL_MOB));
-                    battlefield->InsertEntity(PNpc, false);
-                    ShowDebug(CL_CYAN"Spawned %s id %i inst %i \n", PNpc->status, PNpc->id, battlefield->GetArea());
-                }
-                else
-                {
-                    ShowDebug(CL_CYAN"spawnTreasureForBcnm: <%s> is already spawned\n" CL_RESET, PNpc->GetName());
-                }
-            }
-            return true;
-        }
-        return false;
     }
 
 
