@@ -58,7 +58,7 @@ CBattlefieldHandler::CBattlefieldHandler(CZone* PZone)
 
 void CBattlefieldHandler::HandleBattlefields(time_point tick)
 {
-    auto check = [](auto& battlefield) {return battlefield->GetStatus() == BATTLEFIELD_STATUS_LOST || battlefield->GetStatus() == BATTLEFIELD_STATUS_WON;};
+    auto check = [](auto& battlefield) {return battlefield->CanCleanup();};
     for (auto& PBattlefield : m_Battlefields)
     {
         luautils::OnBattlefieldTick(PBattlefield.get());
@@ -69,71 +69,75 @@ void CBattlefieldHandler::HandleBattlefields(time_point tick)
 
 CBattlefield* CBattlefieldHandler::LoadBattlefield(CCharEntity* PChar, uint16 battlefield)
 {
-    for (auto i = 0; i < m_MaxBattlefields; ++i)
+    if (m_Battlefields.size() < m_MaxBattlefields)
     {
-        auto area = i + 1;
-        if (m_Battlefields[i]->GetArea() != area)
-        {
-            const int8* fmtQuery = "SELECT name, battlefieldId, fastestName, fastestTime, timeLimit, levelCap, lootDropId, rules, partySize, zoneId \
+        auto area = 1;
+
+        // todo: this is horrible, find another way to set the area number
+        std::vector<uint8> areas;
+        for (auto& PBattlefield : m_Battlefields)
+            areas.push_back(PBattlefield->GetArea());
+
+        std::sort(areas.begin(), areas.end());
+        area = areas[areas.size() - 1] + 1;
+
+        const int8* fmtQuery = "SELECT name, battlefieldId, fastestName, fastestTime, timeLimit, levelCap, lootDropId, rules, partySize, zoneId \
 						    FROM battlefield_info \
 							WHERE battlefieldId = %u";
 
-            int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield);
+        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield);
 
-            if (ret == SQL_ERROR ||
-                Sql_NumRows(SqlHandle) == 0 ||
-                Sql_NextRow(SqlHandle) != SQL_SUCCESS)
-            {
-                ShowError("Cannot load battlefield : %u \n", battlefield);
-                return nullptr;
-            }
-            else
-            {
-                std::unique_ptr<CBattlefield> PBattlefield(new CBattlefield(battlefield, m_PZone, area, PChar));
+        if (ret == SQL_ERROR ||
+            Sql_NumRows(SqlHandle) == 0 ||
+            Sql_NextRow(SqlHandle) != SQL_SUCCESS)
+        {
+            ShowError("Cannot load battlefield : %u \n", battlefield);
+            return nullptr;
+        }
+        else
+        {
+            auto PEffect = PChar->StatusEffectContainer->GetStatusEffect(EFFECT_BATTLEFIELD);
+            PEffect->SetSubPower(area);
+            std::unique_ptr<CBattlefield> PBattlefield = std::make_unique<CBattlefield>(battlefield, m_PZone, area, PChar);
 
-                PBattlefield->SetName(Sql_GetData(SqlHandle, 0));
-                PBattlefield->SetCurrentRecord(Sql_GetData(SqlHandle, 2), std::chrono::seconds(Sql_GetUIntData(SqlHandle, 3)));
-                PBattlefield->SetTimeLimit(std::chrono::seconds(Sql_GetUIntData(SqlHandle, 4)));
-                PBattlefield->SetLevelCap(Sql_GetUIntData(SqlHandle, 5));
-                PBattlefield->SetLootID(Sql_GetUIntData(SqlHandle, 6));
-                PBattlefield->SetMaxParticipants(Sql_GetUIntData(SqlHandle, 8));
-                PBattlefield->SetRuleMask((uint16)Sql_GetUIntData(SqlHandle, 7));
+            PBattlefield->SetName(Sql_GetData(SqlHandle, 0));
+            PBattlefield->SetCurrentRecord(Sql_GetData(SqlHandle, 2), std::chrono::seconds(Sql_GetUIntData(SqlHandle, 3)));
+            PBattlefield->SetTimeLimit(std::chrono::seconds(Sql_GetUIntData(SqlHandle, 4)));
+            PBattlefield->SetLevelCap(Sql_GetUIntData(SqlHandle, 5));
+            PBattlefield->SetLootID(Sql_GetUIntData(SqlHandle, 6));
+            PBattlefield->SetMaxParticipants(Sql_GetUIntData(SqlHandle, 8));
+            PBattlefield->SetRuleMask((uint16)Sql_GetUIntData(SqlHandle, 7));
 
-                m_Battlefields.push_back(std::move(PBattlefield));
-                return PBattlefield.get();
-            }
+            m_Battlefields.push_back(std::move(PBattlefield));
+            return PBattlefield.get();
         }
     }
     return nullptr;
 }
 
-CBattlefield* CBattlefieldHandler::GetBattlefield(CCharEntity* PChar)
+CBattlefield* CBattlefieldHandler::GetBattlefield(CBaseEntity* PEntity)
 {
     for (auto& PBattlefield : m_Battlefields)
     {
-        PBattlefield->ForEachPlayer([PChar, &PBattlefield](CCharEntity* PPlayer)
-        {
-            if (PPlayer == PChar)
-            {
-                return PBattlefield.get();
-            }
-        });
+        if (PBattlefield == PEntity->PBattlefield || PBattlefield->GetEntity(PEntity))
+            return PBattlefield.get();
     }
     return nullptr;
 }
 
-CBattlefield* CBattlefieldHandler::EnterBattlefield(CCharEntity* PChar, uint16 battlefield, uint8 area)
+CBattlefield* CBattlefieldHandler::RegisterBattlefield(CCharEntity* PChar, uint16 battlefield, uint8 area)
 {
     bool exists = false;
-    // attempt to add to an existing battlefield
 
+    // attempt to add to an existing battlefield
     auto PBattlefield = GetBattlefield(PChar);
+
+    // assume relogging, remove entity from battlefield
+    if (RemoveFromBattlefield(PChar, PBattlefield))
+        return nullptr;
 
     if (PBattlefield->GetID() == battlefield && PBattlefield->GetArea() == area)
     {
-        if (RemoveFromBattlefield(PChar, PBattlefield))
-            return nullptr;
-
         if (!PBattlefield->InProgress() && (exists = PBattlefield->IsOccupied()))
         {
             PBattlefield->InsertEntity(PChar);
@@ -144,15 +148,16 @@ CBattlefield* CBattlefieldHandler::EnterBattlefield(CCharEntity* PChar, uint16 b
     return exists ? nullptr : LoadBattlefield(PChar, battlefield);
 }
 
-bool CBattlefieldHandler::RemoveFromBattlefield(CCharEntity* PChar, CBattlefield* PBattlefield, uint8 leavecode)
+bool CBattlefieldHandler::RemoveFromBattlefield(CBaseEntity* PEntity, CBattlefield* PBattlefield, uint8 leavecode)
 {
+    // would only be true for pets and players
     if (!PBattlefield)
     {
-        PBattlefield = GetBattlefield(PChar);
+        PBattlefield = GetBattlefield(PEntity);
     }
 
-    // just in case
+    // idek why this has a return type
     DSP_DEBUG_BREAK_IF(PBattlefield == nullptr);
 
-    return PBattlefield->RemoveEntity(PChar, leavecode);
+    return PBattlefield->RemoveEntity(PEntity, leavecode);
 }

@@ -27,6 +27,7 @@
 #include "../zone.h"
 #include "../ai/ai_container.h"
 #include "../instance.h"
+#include "../battlefield.h"
 
 CBaseEntity::CBaseEntity()
 {

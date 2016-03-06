@@ -40,87 +40,6 @@
 #include "../status_effect.h"
 
 namespace battlefieldutils {
-    /***************************************************************
-        Loads the given battlefield from the database and returns
-        a new Battlefield object.
-    ****************************************************************/
-    CBattlefield* LoadBattlefield(CBattlefieldHandler* hand, uint16 bcnmid, BATTLEFIELDTYPE type)
-    {
-        {
-        }
-        return nullptr;
-    }
-
-    /***************************************************************
-        Spawns monsters for the given BCNMID/Battlefield number by
-        looking at bcnm_battlefield table for mob ids then spawning
-        them and adding them to the monster list for the given
-        battlefield.
-    ****************************************************************/
-    bool spawnMonstersForBcnm(CBattlefield* battlefield) {
-        DSP_DEBUG_BREAK_IF(battlefield == nullptr);
-
-        //get ids from DB
-        const int8* fmtQuery = "SELECT monsterId, conditions \
-						    FROM battlefield_mobs \
-							WHERE battlefieldId = %u AND battlefieldNumber = %u";
-
-        int32 ret = Sql_Query(SqlHandle, fmtQuery, battlefield->GetID(), battlefield->GetArea());
-
-        if (ret == SQL_ERROR ||
-            Sql_NumRows(SqlHandle) == 0)
-        {
-            ShowError("battlefieldutils::spawnMonstersForBcnm() : SQL error - Cannot find any monster IDs for BCNMID %i Battlefield %i \n",
-                battlefield->GetID(), battlefield->GetArea());
-        }
-        else
-        {
-            while (Sql_NextRow(SqlHandle) == SQL_SUCCESS)
-            {
-                uint32 mobid = Sql_GetUIntData(SqlHandle, 0);
-                uint8 condition = Sql_GetUIntData(SqlHandle, 1);
-                CMobEntity* PMob = (CMobEntity*)zoneutils::GetEntity(mobid, TYPE_MOB);
-
-                if (PMob != nullptr)
-                {
-                    if (condition & CONDITION_SPAWNED_AT_START)
-                    {
-                        if (!PMob->PAI->IsSpawned())
-                        {
-                            PMob->Spawn();
-                            //ShowDebug("Spawned %s (%u) id %i inst %i \n",PMob->GetName(),PMob->id,battlefield->GetID(),battlefield->GetArea());
-                            battlefield->InsertEntity(PMob, (BCMOBCONDITIONS)condition);
-                        }
-                        else
-                        {
-                            ShowDebug(CL_CYAN"SpawnMobForBcnm: <%s> (%u) is already spawned\n" CL_RESET, PMob->GetName(), PMob->id);
-                        }
-                    }
-                    else
-                    {
-                        battlefield->InsertEntity(PMob, (BCMOBCONDITIONS)condition);
-                    }
-                }
-                else
-                {
-                    ShowDebug("SpawnMobForBcnm: mob %u not found\n", mobid);
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-
-
-
-    /***************************************************************
-        Spawns treasure chest/armory crate, what ever on winning bcnm
-    ****************************************************************/
-    bool spawnTreasureForBcnm(CBattlefield* battlefield) {
-
-    }
-
-
 
     /**************************************************************
     Called by ALL BCNMs to check winning conditions every tick. This
@@ -310,7 +229,7 @@ namespace battlefieldutils {
         LootList_t* LootList = itemutils::GetLootList(battlefield->GetLootID());
 
         if (LootList == nullptr) {
-            ShowError("battlefieldutils::getChestItems() : battlefieldId %u battlefieldNumber %u chest opened with no valid loot list!", battlefield->GetID(), battlefield->GetArea());
+            ShowError("battlefieldutils::getChestItems() : battlefieldId %u area %u chest opened with no valid loot list!", battlefield->GetID(), battlefield->GetArea());
             //no loot available for bcnm. End bcnm.
             // todo: battlefield->winBcnm();
             return;

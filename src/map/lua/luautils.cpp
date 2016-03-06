@@ -1598,11 +1598,13 @@ namespace luautils
 
     int32 OnEventFinish(CCharEntity* PChar, uint16 eventID, uint32 result)
     {
+        /* todo: bcnm - handle this in script
         //#TODO: move this to BCNM stuff when it's rewritten
-        if (PChar->PBCNM && PChar->PBCNM->won())
+        if (PChar->PBattlefield)
         {
-            PChar->PBCNM->delPlayerFromBcnm(PChar);
+            PChar->PBattlefield->RemoveEntity(PChar);
         }
+        */
         int32 oldtop = lua_gettop(LuaHandle);
 
         lua_pushnil(LuaHandle);

@@ -26,6 +26,7 @@
 
 #include <vector>
 #include <functional>
+#include <memory>
 
 #include "../common/cbasetypes.h"
 #include "../common/mmo.h"
@@ -39,7 +40,7 @@ enum BCRULES
     RULES_MAAT                  = 0x10
 };
 
-enum BCMOBCONDITIONS
+enum BATTLEFIELDMOBCONDITION
 {
     CONDITION_NONE             = 0x00,
     CONDITION_SPAWNED_AT_START = 0x01,
@@ -66,13 +67,14 @@ class CNpcEntity;
 class CMobEntity;
 class CCharEntity;
 class CBaseEntity;
+class CBattleEntity;
 class CBattlefieldHandler;
 class CZone;
 
 typedef struct
 {
-    CMobEntity* PMob;           // BCNM Target
-    BCMOBCONDITIONS condition; // whether it has died or not
+    uint16 targid;                       // mob's targid
+    BATTLEFIELDMOBCONDITION condition; // whether it has died or not
 } BattlefieldMob_t;
 
 typedef struct
@@ -107,9 +109,9 @@ public:
     uint16                 GetRuleMask();
     time_point             GetStartTime();
     duration               GetTimeInside();
-    duration               GetFightTime();
+    time_point             GetFightTime();
     duration               GetTimeLimit();
-    duration               GetAllDeadTime();
+    time_point             GetWipeTime();
     uint8                  GetMaxParticipants();
     uint8                  GetPlayerCount();
     uint8                  GetLevelCap();
@@ -135,30 +137,28 @@ public:
     void                   SetStatus(uint8 status);
     void                   SetRuleMask(uint16 rulemask);
     void                   SetStartTime(time_point time);
-    void                   SetFightTime(duration time);
+    void                   SetFightTime(time_point time);
     void                   SetTimeLimit(duration time);
-    void                   SetAllDeadTime(duration time);
+    void                   SetWipeTime(time_point time);
     void                   SetMaxParticipants(uint8 max);
     void                   SetLevelCap(uint8 cap);
     void                   SetLootID(uint16 id);
 
     void                   ApplyLevelCap(CCharEntity* PChar);
-    void                   ClearPlayerEnmity(CCharEntity* PChar);
-    bool                   InsertEntity(CBaseEntity* PEntity, BCMOBCONDITIONS conditions = CONDITION_NONE);
+    void                   ClearEnmityForEntity(CBattleEntity* PEntity);
+    bool                   InsertEntity(CBaseEntity* PEntity, bool inBattlefield = false, BATTLEFIELDMOBCONDITION conditions = CONDITION_NONE);
+    CBaseEntity*           GetEntity(CBaseEntity* PEntity);
     bool                   RemoveEntity(CBaseEntity* PEntity, uint8 leavecode = 0);
+    bool                   DoTick(time_point time);
+    bool                   CanCleanup(bool cleanup = false);
     void                   Cleanup();
-    void                   LoadMobs();
+    bool                   LoadMobs();
     //player related functions
 
     void                   PushMessageToAllInBcnm(uint16 msg, uint16 param);
 
     bool                   SpawnTreasureChest();
-    bool                   TreasureChestSpawned;
     void                   OpenChest();
-
-    //mob related functions
-    //bool                 spawnAllEnemies();
-    //bool                 resetAllEnemySpawnPositions();
 
     bool                   AllEnemiesDefeated();
 
@@ -166,29 +166,33 @@ public:
 
     bool                   LoseBcnm();
 
-    std::vector<CCharEntity*>     m_PlayerList;
-    std::vector<CNpcEntity*>      m_NpcList;
+    std::vector<uint16>           m_PlayerList;
+    std::vector<uint16>           m_NpcList;
     std::vector<BattlefieldMob_t> m_EnemyList;
-    std::vector<CMobEntity*>      m_AllyList;
+    std::vector<uint16>           m_AllyList;
 
 private:
     uint16                 m_ID;
-    CZone*                 m_PZone;
+    std::unique_ptr<CZone> m_PZone;
     string_t               m_Name;
     BattlefieldInitiator_t m_Initiator;
     uint8                  m_Area;
     BattlefieldRecord_t    m_CurrentRecord;
-    uint8                  m_Status;
+    uint8                  m_Status{ BATTLEFIELD_STATUS_OPEN };
     uint16                 m_Rules;
     time_point             m_StartTime;
     time_point             m_Tick;
-    duration               m_FightTick;
+    time_point             m_FightTick;
     duration               m_TimeLimit;
-    duration               m_AllDeadTime;
+    time_point             m_WipeTime;
     duration               m_FinishTime;
     uint8                  m_MaxParticipants;
     uint8                  m_LevelCap;
     uint32                 m_LootID;
+
+    bool                   m_Cleanup{ false };
+    bool                   m_SeenBooty{ false };
+    bool                   m_GotBooty{ false };
 };
 
 #endif

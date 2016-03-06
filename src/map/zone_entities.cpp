@@ -24,6 +24,7 @@ This file is part of DarkStar-server source code.
 #include "zone_entities.h"
 
 #include "../common/utils.h"
+#include "battlefield.h"
 #include "party.h"
 #include "latent_effect_container.h"
 #include "status_effect_container.h"
@@ -298,10 +299,11 @@ void CZoneEntities::DecreaseZoneCounter(CCharEntity* PChar)
     //remove bcnm status
     if (m_zone->m_BattlefieldHandler != nullptr && PChar->StatusEffectContainer->HasStatusEffect(EFFECT_BATTLEFIELD))
     {
-        /*if (m_zone->m_BattlefieldHandler->disconnectFromBcnm(PChar)) {
+        if (m_zone->m_BattlefieldHandler->RemoveFromBattlefield(PChar, nullptr, LEAVE_WARPDC))
+        {
             ShowDebug("Removed %s from the BCNM they were in as they have left the zone.\n", PChar->GetName());
         }
-        */
+        /* todo: bcnm - handle in scripts
         if (PChar->loc.destination == 0) { //this player is disconnecting/logged out, so move them to the entrance
             //move depending on zone
             int pos[4] = {0, 0, 0, 0};
@@ -318,6 +320,7 @@ void CZoneEntities::DecreaseZoneCounter(CCharEntity* PChar)
                 ShowWarning("%s has disconnected from the BCNM but cannot move them to the lobby as the lobby position is unknown!\n", PChar->GetName());
             }
         }
+        */
     }
     else if (m_zone->m_BattlefieldHandler != nullptr && PChar->StatusEffectContainer->HasStatusEffect(EFFECT_DYNAMIS, 0))
     {
