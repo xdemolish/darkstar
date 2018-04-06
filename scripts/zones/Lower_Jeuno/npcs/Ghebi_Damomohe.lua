@@ -7,15 +7,14 @@
 -- @pos 16 0 -5
 -----------------------------------
 package.loaded["scripts/zones/Lower_Jeuno/TextIDs"] = nil;
-package.loaded["scripts/globals/settings"] = nil;
 -----------------------------------
-
-require("scripts/globals/settings");
-require("scripts/globals/shop");
-require("scripts/globals/titles");
-require("scripts/globals/keyitems");
-require("scripts/globals/quests");
 require("scripts/zones/Lower_Jeuno/TextIDs");
+require("scripts/globals/missions");
+require("scripts/globals/settings");
+require("scripts/globals/keyitems");
+require("scripts/globals/titles");
+require("scripts/globals/quests");
+require("scripts/globals/shop");
 
 -----------------------------------
 -- onTrade Action
@@ -29,6 +28,8 @@ function onTrade(player,npc,trade)
             --Gray Chip (Ex) - Diremite Stalker (at Tower near Ranguemont), Diremite Assaulter, Diremite 
             --Cyan Chip (Ex) - Treasure Chest Mimics 
 	        player:startEvent(0x0034);
+    elseif(player:hasKeyItem(PSOXJA_PASS) == true and trade:hasItemQty(1782,1) and player:hasCompletedMission(COP, DARKNESS_NAMED)) then
+        player:startEvent(0x273F, 1782);
 	end
 	-- cs 51 for "Wrong Gem" on Pso'Xja pass.  Not sure which gems should trigger this.
 end; 
@@ -51,6 +52,8 @@ function onTrigger(player,npc)
 		player:startEvent(53);
 	elseif(player:hasKeyItem(TENSHODO_APPLICATION_FORM) == true) then 
 		player:startEvent(0x006b); -- Finish Quest
+    elseif(PsoXjaPass == true and player:hasKeyItem(ASTRAL_COVENANT) == false) then
+        player:startEvent(0x00A9)
 	else
 		player:startEvent(0x006a,4); -- Menu without quest
 	end
@@ -110,8 +113,10 @@ function onEventFinish(player,csid,option)
 		player:setVar("PXPassGetGems",0);
 	elseif(csid == 54) then
 		player:setVar("PXPassGetGems",1);
+        
+    elseif(csid == 0x273F) then
+        player:addKeyItem(ASTRAL_COVENANT);
+        player:messageSpecial(KEYITEM_OBTAINED, ASTRAL_COVENANT);
+        player:tradeComplete();
 	end
 end;
-
-
-
